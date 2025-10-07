@@ -1,73 +1,19 @@
-# Welcome to your Lovable project
+## Swasthya Vaani
 
-## Project info
+Your personal, easy-to-use health companion. Swasthya Vaani helps you check symptoms, get basic medicine suggestions, manage medication reminders, and chat with an AI assistant for health guidance.
 
-**URL**: https://lovable.dev/projects/89c74b0a-fc58-4b39-95ad-825a1f8fbe45
+### What you can do
 
-## How can I edit this code?
+- **AI Health Assistant**: Chat with an AI about medicines, symptoms, and general health advice. Responses can be spoken aloud for accessibility.
+- **Symptom Checker**: Select common symptoms to see suggested over‑the‑counter medicines and typical dosage guidance. Includes a clear safety note to consult a doctor.
+- **Medication Reminders**: Create and manage daily medicine reminders, mark doses complete, and review completed reminders.
+- **Medicine Search**: Use the home search bar to quickly look up medicines (enhanced search coming soon).
+- **Daily Health Tips**: Simple, actionable wellness tips surfaced on the home screen.
+- **Modern UI with Dark Mode**: Clean, mobile‑first interface with a theme toggle.
 
-There are several ways of editing your application.
+### Coming soon
 
-**Use Lovable**
+- **Voice input for queries**
+- **Camera scan for medicine packs**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/89c74b0a-fc58-4b39-95ad-825a1f8fbe45) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/89c74b0a-fc58-4b39-95ad-825a1f8fbe45) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Note: Swasthya Vaani is for information only and does not replace medical advice from a qualified healthcare professional.
