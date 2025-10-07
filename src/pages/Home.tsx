@@ -2,8 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Search, Camera, Mic, Activity, Pill, Heart, TrendingUp } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Search, Camera, Mic, Activity, Pill, Heart, TrendingUp, Bot } from "lucide-react";
 import { toast } from "sonner";
+import AIAssistant from "@/components/AIAssistant";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const quickActions = [
   { icon: Activity, label: "Symptom Checker", color: "from-primary to-secondary" },
@@ -21,6 +24,7 @@ const healthTips = [
 
 const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
 
   const handleVoiceSearch = () => {
     toast.info("Voice search coming soon!");
@@ -40,8 +44,13 @@ const Home = () => {
     <div className="min-h-screen bg-gradient-to-br from-background to-muted pb-20">
       {/* Header with gradient */}
       <div className="bg-gradient-to-br from-primary via-secondary to-accent p-6 pt-8 rounded-b-3xl shadow-[var(--shadow-medical)]">
-        <h1 className="text-2xl font-bold text-white mb-2">Hello, User!</h1>
-        <p className="text-white/90">How can we help you today?</p>
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-2">Hello, User!</h1>
+            <p className="text-white/90">How can we help you today?</p>
+          </div>
+          <ThemeToggle />
+        </div>
         
         {/* Search bar */}
         <div className="mt-6 relative">
@@ -72,6 +81,27 @@ const Home = () => {
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* AI Assistant Banner */}
+      <div className="px-4 mt-6">
+        <Card 
+          className="p-6 cursor-pointer hover:shadow-[var(--shadow-card)] transition-all hover-scale bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20"
+          onClick={() => setShowAIAssistant(true)}
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-primary to-secondary">
+              <Bot className="w-8 h-8 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-lg mb-1">Talk to AI Assistant</h3>
+              <p className="text-sm text-muted-foreground">
+                Ask about medicines, symptoms, or health advice in your language
+              </p>
+            </div>
+            <Mic className="w-6 h-6 text-primary" />
+          </div>
+        </Card>
       </div>
 
       {/* Quick Actions */}
@@ -108,6 +138,16 @@ const Home = () => {
           ))}
         </div>
       </div>
+
+      {/* AI Assistant Dialog */}
+      <Dialog open={showAIAssistant} onOpenChange={setShowAIAssistant}>
+        <DialogContent className="max-w-2xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>AI Health Assistant</DialogTitle>
+          </DialogHeader>
+          <AIAssistant />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

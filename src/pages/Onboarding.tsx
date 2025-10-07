@@ -1,32 +1,38 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Pill, Activity, Bell, Shield } from "lucide-react";
+import { ChevronRight, Pill, Activity, Bell, Shield, Mic } from "lucide-react";
 
 const slides = [
+  {
+    icon: Mic,
+    title: "Talk to AI Assistant",
+    description: "Speak naturally in your language. Get instant answers about medicines, symptoms, and health advice powered by AI",
+    gradient: "from-primary to-secondary"
+  },
   {
     icon: Pill,
     title: "Find Your Medicines",
     description: "Search medicines by name, scan prescriptions, or use voice input in your preferred language",
-    gradient: "from-primary to-secondary"
+    gradient: "from-secondary to-accent"
   },
   {
     icon: Activity,
     title: "Check Symptoms",
     description: "Get instant medicine suggestions based on your symptoms with AI-powered recommendations",
-    gradient: "from-secondary to-accent"
+    gradient: "from-accent to-primary"
   },
   {
     icon: Bell,
     title: "Never Miss a Dose",
     description: "Set smart reminders for your medications and track your health journey",
-    gradient: "from-accent to-primary"
+    gradient: "from-primary to-accent"
   },
   {
     icon: Shield,
     title: "Your Health, Secured",
     description: "All your health data is encrypted and stored securely on your device",
-    gradient: "from-primary to-accent"
+    gradient: "from-accent to-secondary"
   }
 ];
 
