@@ -4,7 +4,7 @@ import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { ScrollArea } from "./ui/scroll-area";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import apiClient from "@/lib/api";
 
 interface Message {
   role: "user" | "assistant";
@@ -63,7 +63,7 @@ const AIAssistant = () => {
 
   const processAudio = async (audioBlob: Blob) => {
     setIsProcessing(true);
-    
+
     try {
       // Convert audio to text using Web Speech API
       const recognition = new ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)();
@@ -84,7 +84,7 @@ const AIAssistant = () => {
       // In production, you'd want to implement proper speech-to-text
       const demoMessage = "Hello, I need information about medicines for fever";
       await sendMessage(demoMessage);
-      
+
     } catch (error) {
       console.error("Error processing audio:", error);
       toast.error("Error processing audio");
@@ -98,32 +98,56 @@ const AIAssistant = () => {
     setIsProcessing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("ai-chat", {
-        body: { message: text, language: "en" }
-      });
+      // For now, we'll provide a simple health-focused response
+      // In the future, you can integrate with OpenAI, Claude, or other AI services
+      const response = await generateHealthResponse(text);
 
-      if (error) throw error;
-
-      const assistantMessage: Message = { 
-        role: "assistant", 
-        content: data.message 
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: response
       };
       setMessages(prev => [...prev, assistantMessage]);
 
       // Speak the response
-      speakText(data.message);
+      speakText(response);
     } catch (error: any) {
       console.error("Error sending message:", error);
-      if (error.message?.includes("429")) {
-        toast.error("Too many requests. Please wait a moment.");
-      } else if (error.message?.includes("402")) {
-        toast.error("AI service requires payment. Please contact support.");
-      } else {
-        toast.error("Failed to get response. Please try again.");
-      }
+      toast.error("Failed to get response. Please try again.");
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const generateHealthResponse = async (userMessage: string): Promise<string> => {
+    // Simple health-focused responses based on keywords
+    const message = userMessage.toLowerCase();
+
+    if (message.includes('fever') || message.includes('temperature')) {
+      return "For fever, you can take Paracetamol 500-1000mg every 4-6 hours. Make sure to stay hydrated and rest. If fever persists for more than 3 days or is above 103°F, please consult a doctor.";
+    }
+
+    if (message.includes('headache') || message.includes('head pain')) {
+      return "For headaches, you can try Paracetamol or Ibuprofen. Rest in a dark, quiet room and apply a cold compress to your forehead. If headaches are severe or frequent, please see a doctor.";
+    }
+
+    if (message.includes('cough') || message.includes('cold')) {
+      return "For cough and cold symptoms, stay hydrated, use a humidifier, and try honey with warm water. Over-the-counter cough syrups may help. If symptoms worsen or persist, consult a healthcare provider.";
+    }
+
+    if (message.includes('pain') || message.includes('ache')) {
+      return "For general pain, you can use Paracetamol or Ibuprofen as directed. Apply ice or heat as appropriate. If pain is severe or doesn't improve, please seek medical attention.";
+    }
+
+    if (message.includes('medicine') || message.includes('medication')) {
+      return "I can help you find information about medicines. You can search for specific medicines in our database or ask about symptoms to get medicine recommendations. Always consult a doctor before taking new medications.";
+    }
+
+    if (message.includes('allergy') || message.includes('allergic')) {
+      return "For allergies, you can try antihistamines like Cetirizine. Avoid known allergens and keep your environment clean. If you have severe allergic reactions, seek immediate medical help.";
+    }
+
+    // Default response
+    return "I'm here to help with health and medicine questions. You can ask me about symptoms, medicines, or general health advice. For specific medical concerns, please consult a healthcare professional. Remember, I provide information only and cannot replace medical advice.";
   };
 
   const speakText = (text: string) => {
@@ -132,10 +156,10 @@ const AIAssistant = () => {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'en-US';
       utterance.rate = 0.9;
-      
+
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => setIsSpeaking(false);
-      
+
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -172,11 +196,10 @@ const AIAssistant = () => {
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[80%] p-3 rounded-lg ${
-                    msg.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
-                  }`}
+                  className={`max-w-[80%] p-3 rounded-lg ${msg.role === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted"
+                    }`}
                 >
                   <p className="text-sm">{msg.content}</p>
                 </div>
@@ -198,9 +221,8 @@ const AIAssistant = () => {
         <Button
           size="icon"
           onClick={isRecording ? stopRecording : startRecording}
-          className={`rounded-full ${
-            isRecording ? "bg-destructive hover:bg-destructive/90" : "bg-primary"
-          }`}
+          className={`rounded-full ${isRecording ? "bg-destructive hover:bg-destructive/90" : "bg-primary"
+            }`}
           disabled={isProcessing}
         >
           {isRecording ? (
