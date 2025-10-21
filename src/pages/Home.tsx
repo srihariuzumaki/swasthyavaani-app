@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Camera, Mic, Activity, Pill, Heart, TrendingUp, Bot } from "lucide-react";
+import { Search, Camera, Mic, Activity, Pill, Heart, TrendingUp, Bot, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import AIAssistant from "@/components/AIAssistant";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const quickActions = [
   { icon: Activity, label: "Symptom Checker", color: "from-primary to-secondary" },
@@ -25,6 +27,8 @@ const healthTips = [
 const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const { logout, user } = useAuth();
+  const navigate = useNavigate();
 
   const handleVoiceSearch = () => {
     toast.info("Voice search coming soon!");
@@ -40,18 +44,34 @@ const Home = () => {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    toast.success("Logged out successfully!");
+    navigate("/login");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted pb-20">
       {/* Header with gradient */}
       <div className="bg-gradient-to-br from-primary via-secondary to-accent p-6 pt-8 rounded-b-3xl shadow-[var(--shadow-medical)]">
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-2">Hello, User!</h1>
+            <h1 className="text-2xl font-bold text-white mb-2">Hello, {user?.name || 'User'}!</h1>
             <p className="text-white/90">How can we help you today?</p>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={handleLogout}
+              className="text-white hover:bg-white/20 rounded-full"
+            >
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
-        
+
         {/* Search bar */}
         <div className="mt-6 relative">
           <Input
@@ -63,7 +83,7 @@ const Home = () => {
           />
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-            <Button 
+            <Button
               size="icon"
               variant="ghost"
               onClick={handleVoiceSearch}
@@ -71,7 +91,7 @@ const Home = () => {
             >
               <Mic className="w-5 h-5 text-primary" />
             </Button>
-            <Button 
+            <Button
               size="icon"
               variant="ghost"
               onClick={handleCameraSearch}
@@ -85,7 +105,7 @@ const Home = () => {
 
       {/* AI Assistant Banner */}
       <div className="px-4 mt-6">
-        <Card 
+        <Card
           className="p-6 cursor-pointer hover:shadow-[var(--shadow-card)] transition-all hover-scale bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20"
           onClick={() => setShowAIAssistant(true)}
         >
@@ -111,7 +131,7 @@ const Home = () => {
           {quickActions.map((action, index) => {
             const Icon = action.icon;
             return (
-              <Card 
+              <Card
                 key={index}
                 className="p-4 flex flex-col items-center gap-3 cursor-pointer hover:shadow-[var(--shadow-card)] transition-all hover-scale"
                 onClick={() => toast.info(`${action.label} coming soon!`)}

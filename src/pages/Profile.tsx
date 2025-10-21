@@ -15,7 +15,7 @@ const Profile = () => {
     // Clear onboarding state so user goes through onboarding again
     localStorage.removeItem("hasSeenOnboarding");
     toast.success("Logged out successfully!");
-    navigate("/onboarding");
+    navigate("/login");
   };
 
   return (

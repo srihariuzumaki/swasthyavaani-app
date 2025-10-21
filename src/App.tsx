@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import Onboarding from "./pages/Onboarding";
+import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Symptoms from "./pages/Symptoms";
 import Reminders from "./pages/Reminders";
@@ -21,13 +22,14 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const location = useLocation();
-  const showBottomNav = !["/", "/onboarding"].includes(location.pathname);
+  const showBottomNav = !["/", "/onboarding", "/login"].includes(location.pathname);
 
   return (
     <>
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/symptoms" element={<ProtectedRoute><Symptoms /></ProtectedRoute>} />
         <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
