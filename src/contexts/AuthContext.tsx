@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (token) {
                 try {
                     const response = await apiClient.getProfile();
-                    setUser(response.data.user);
+                    setUser((response as any).data.user);
                 } catch (error) {
                     console.error('Failed to fetch user profile:', error);
                     localStorage.removeItem('auth_token');
@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }) => {
         try {
             const response = await apiClient.verifyOTP(phone, otp, userData);
-            setUser(response.data.user);
+            setUser((response as any).data.user);
         } catch (error) {
             throw error;
         }
@@ -119,12 +119,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const logout = () => {
         apiClient.logout();
         setUser(null);
+        // Clear any additional user-related data from localStorage
+        localStorage.removeItem('user_preferences');
+        localStorage.removeItem('last_login');
     };
 
     const updateProfile = async (profileData: any) => {
         try {
             const response = await apiClient.updateProfile(profileData);
-            setUser(response.data.user);
+            setUser((response as any).data.user);
         } catch (error) {
             throw error;
         }
@@ -133,7 +136,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const refreshUser = async () => {
         try {
             const response = await apiClient.getProfile();
-            setUser(response.data.user);
+            setUser((response as any).data.user);
         } catch (error) {
             console.error('Failed to refresh user:', error);
             throw error;

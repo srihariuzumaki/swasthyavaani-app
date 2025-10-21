@@ -52,6 +52,19 @@ otpSchema.statics.generateOTP = function (phone, purpose = 'login') {
 
 // Static method to verify OTP
 otpSchema.statics.verifyOTP = async function (phone, code, purpose = 'login') {
+    // First check if there are too many attempts
+    const existingOtp = await this.findOne({
+        phone,
+        purpose,
+        isUsed: false,
+        expiresAt: { $gt: new Date() },
+    });
+
+    if (existingOtp && existingOtp.attempts >= 3) {
+        return { valid: false, message: 'Too many attempts. Please request a new OTP.' };
+    }
+
+    // Find the OTP
     const otp = await this.findOne({
         phone,
         code,
@@ -62,15 +75,11 @@ otpSchema.statics.verifyOTP = async function (phone, code, purpose = 'login') {
 
     if (!otp) {
         // Increment attempts for any existing OTP for this phone
-        await this.updateOne(
-            { phone, purpose, isUsed: false },
-            { $inc: { attempts: 1 } }
-        );
+        if (existingOtp) {
+            existingOtp.attempts += 1;
+            await existingOtp.save();
+        }
         return { valid: false, message: 'Invalid or expired OTP' };
-    }
-
-    if (otp.attempts >= 3) {
-        return { valid: false, message: 'Too many attempts. Please request a new OTP.' };
     }
 
     // Mark OTP as used

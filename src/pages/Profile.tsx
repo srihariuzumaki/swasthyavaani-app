@@ -3,8 +3,21 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { User, Bell, Globe, Moon, Type, Contrast, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
+  const { logout, user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    // Clear onboarding state so user goes through onboarding again
+    localStorage.removeItem("hasSeenOnboarding");
+    toast.success("Logged out successfully!");
+    navigate("/onboarding");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted pb-20">
       {/* Header */}
@@ -26,24 +39,24 @@ const Profile = () => {
             Personal Information
           </h2>
           <div className="space-y-3">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="w-full justify-between"
               onClick={() => toast.info("Edit profile coming soon!")}
             >
               <span>Name</span>
               <ChevronRight className="w-4 h-4" />
             </Button>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="w-full justify-between"
               onClick={() => toast.info("Edit email coming soon!")}
             >
               <span>Email</span>
               <ChevronRight className="w-4 h-4" />
             </Button>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="w-full justify-between"
               onClick={() => toast.info("Edit phone coming soon!")}
             >
@@ -83,8 +96,8 @@ const Profile = () => {
             <Globe className="w-5 h-5 text-primary" />
             Language
           </h2>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="w-full justify-between"
             onClick={() => toast.info("Language selection coming soon!")}
           >
@@ -134,10 +147,10 @@ const Profile = () => {
         </Card>
 
         {/* Logout */}
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="w-full text-destructive hover:bg-destructive/10"
-          onClick={() => toast.info("Logout functionality coming soon!")}
+          onClick={handleLogout}
         >
           Log Out
         </Button>

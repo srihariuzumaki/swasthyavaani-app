@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Pill, Activity, Bell, Shield, Mic } from "lucide-react";
+import MobileOTPLogin from "@/components/MobileOTPLogin";
+import { useAuth } from "@/contexts/AuthContext";
 
 const slides = [
   {
@@ -38,15 +40,21 @@ const slides = [
 
 const Onboarding = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [showLogin, setShowLogin] = useState(false);
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   const handleNext = () => {
     if (currentSlide < slides.length - 1) {
       setCurrentSlide(currentSlide + 1);
     } else {
-      localStorage.setItem("hasSeenOnboarding", "true");
-      navigate("/home");
+      setShowLogin(true);
     }
+  };
+
+  const handleLoginSuccess = () => {
+    localStorage.setItem("hasSeenOnboarding", "true");
+    navigate("/home");
   };
 
   const handleSkip = () => {
@@ -56,6 +64,22 @@ const Onboarding = () => {
 
   const slide = slides[currentSlide];
   const Icon = slide.icon;
+
+  // If user is already authenticated, redirect to home
+  if (isAuthenticated) {
+    localStorage.setItem("hasSeenOnboarding", "true");
+    navigate("/home");
+    return null;
+  }
+
+  // Show login component
+  if (showLogin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
+        <MobileOTPLogin onSuccess={handleLoginSuccess} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col">
@@ -75,7 +99,7 @@ const Onboarding = () => {
         <h1 className="text-3xl font-bold text-center mb-4 animate-fade-in">
           {slide.title}
         </h1>
-        
+
         <p className="text-center text-muted-foreground text-lg max-w-sm animate-fade-in">
           {slide.description}
         </p>
@@ -85,11 +109,10 @@ const Onboarding = () => {
           {slides.map((_, index) => (
             <div
               key={index}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                index === currentSlide 
-                  ? "w-8 bg-primary" 
-                  : "w-2 bg-border"
-              }`}
+              className={`h-2 rounded-full transition-all duration-300 ${index === currentSlide
+                ? "w-8 bg-primary"
+                : "w-2 bg-border"
+                }`}
             />
           ))}
         </div>
@@ -97,7 +120,7 @@ const Onboarding = () => {
 
       {/* Next button */}
       <div className="p-6 pb-8">
-        <Button 
+        <Button
           onClick={handleNext}
           size="lg"
           className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity shadow-[var(--shadow-medical)]"

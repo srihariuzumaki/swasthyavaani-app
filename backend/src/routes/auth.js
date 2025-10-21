@@ -63,16 +63,7 @@ router.post('/verify-otp', [
     try {
         const { phone, otp, name, dateOfBirth, gender } = req.body;
 
-        // Verify OTP
-        const otpResult = await OTP.verifyOTP(phone, otp, 'login');
-        if (!otpResult.valid) {
-            return res.status(400).json({
-                status: 'error',
-                message: otpResult.message,
-            });
-        }
-
-        // Check if user exists
+        // Check if user exists first
         let user = await User.findOne({ phone });
 
         if (!user) {
@@ -83,7 +74,19 @@ router.post('/verify-otp', [
                     message: 'Name is required for new user registration',
                 });
             }
+        }
 
+        // Verify OTP only after we know we have all required data
+        const otpResult = await OTP.verifyOTP(phone, otp, 'login');
+        if (!otpResult.valid) {
+            return res.status(400).json({
+                status: 'error',
+                message: otpResult.message,
+            });
+        }
+
+        if (!user) {
+            // Register new user
             user = new User({
                 name,
                 phone,
