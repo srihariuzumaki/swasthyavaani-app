@@ -36,11 +36,29 @@ app.use(limiter);
 
 // CORS configuration
 app.use(cors({
-    origin: [
-        process.env.FRONTEND_URL || 'http://localhost:5173',
-        'http://localhost:8080',
-        'http://localhost:3000'
-    ],
+    origin: process.env.NODE_ENV === 'development' 
+        ? true // Allow all origins in development
+        : function(origin, callback) {
+            // Allow requests with no origin (like mobile apps, curl requests)
+            if(!origin) return callback(null, true);
+            
+            const allowedOrigins = [
+                process.env.FRONTEND_URL || 'http://localhost:5173',
+                'http://localhost:8080',
+                'http://localhost:3000'
+            ];
+            
+            // Check if the origin is allowed or if it's an IP address on the local network
+            const isLocalNetwork = /^https?:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin) || 
+                                  /^https?:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin) ||
+                                  /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin);
+            
+            if(allowedOrigins.indexOf(origin) !== -1 || isLocalNetwork) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
     credentials: true,
 }));
 
@@ -83,9 +101,10 @@ app.use('*', (req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
-// Start server
-app.listen(PORT, () => {
+// Start server - listen on all network interfaces (0.0.0.0)
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+    console.log(`Access the API at http://localhost:${PORT} or http://YOUR_IP_ADDRESS:${PORT}`);
 });
 
 export default app;

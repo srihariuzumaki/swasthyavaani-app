@@ -26,13 +26,9 @@ const MobileOTPLogin: React.FC<MobileOTPLoginProps> = ({ onSuccess }) => {
     const formatPhoneNumber = (value: string) => {
         // Remove all non-digits
         const digits = value.replace(/\D/g, '');
-
-        // Add country code if not present
-        if (digits.length > 0 && !digits.startsWith('91')) {
-            return '+91' + digits;
-        }
-
-        return '+' + digits;
+        
+        // Always add India country code (+91) automatically
+        return '+91' + digits;
     };
 
     const handleSendOTP = async () => {

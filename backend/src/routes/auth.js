@@ -4,8 +4,35 @@ import User from '../models/User.js';
 import OTP from '../models/OTP.js';
 import { generateToken } from '../middleware/auth.js';
 import { validateRequest } from '../utils/validation.js';
+import twilio from 'twilio';
 
 const router = express.Router();
+
+// Initialize Twilio client
+const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
+    ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+    : null;
+
+// Send OTP via SMS
+const sendOTPviaSMS = async (phone, otpCode) => {
+    if (!twilioClient) {
+        console.log(`[DEV] Would send OTP ${otpCode} to ${phone}`);
+        return;
+    }
+    
+    try {
+        const message = await twilioClient.messages.create({
+            body: `Your Swasthya Vaani verification code is: ${otpCode}. Valid for 2 hours.`,
+            from: process.env.TWILIO_PHONE_NUMBER,
+            to: phone
+        });
+        console.log(`SMS sent with SID: ${message.sid}`);
+        return message;
+    } catch (error) {
+        console.error('Error sending SMS:', error);
+        throw new Error(`Failed to send SMS: ${error.message}`);
+    }
+};
 
 // @route   POST /api/auth/send-otp
 // @desc    Send OTP to mobile number
@@ -25,16 +52,20 @@ router.post('/send-otp', [
         // Generate and save OTP
         const otp = await OTP.generateOTP(phone, purpose);
 
-        // TODO: In production, send OTP via SMS service (Twilio, AWS SNS, etc.)
-        // For development, we'll return the OTP in response
-        console.log(`OTP for ${phone}: ${otp.code}`);
+        // Send OTP via SMS using Twilio
+        try {
+            await sendOTPviaSMS(phone, otp.code);
+        } catch (error) {
+            console.error('Failed to send SMS:', error);
+            // Continue even if SMS fails - we'll show the OTP in development mode
+        }
 
         res.json({
             status: 'success',
             message: 'OTP sent successfully',
             data: {
                 phone,
-                expiresIn: '10 minutes',
+                expiresIn: '2 hours',
                 // Remove this in production
                 otp: process.env.NODE_ENV === 'development' ? otp.code : undefined,
             },
@@ -142,7 +173,7 @@ router.post('/resend-otp', [
             message: 'OTP resent successfully',
             data: {
                 phone,
-                expiresIn: '10 minutes',
+                expiresIn: '2 hours',
                 // Remove this in production
                 otp: process.env.NODE_ENV === 'development' ? otp.code : undefined,
             },
