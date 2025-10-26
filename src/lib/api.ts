@@ -1,7 +1,7 @@
 // IMPORTANT: Replace 192.168.X.X with your computer's actual IP address
 // You can find your IP by running 'ipconfig' in Command Prompt and looking for IPv4 Address
 // This is required for mobile devices to connect to your local development server
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://10.0.2.2:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://swasthyavaani-app.vercel.app/api';
 
 // Log the API URL for debugging
 console.log('API Base URL:', API_BASE_URL);
