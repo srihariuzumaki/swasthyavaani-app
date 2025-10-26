@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Camera, Mic, Activity, Pill, Heart, TrendingUp, Bot, LogOut } from "lucide-react";
+import { Search, Camera, Mic, Activity, Pill, Heart, TrendingUp, Bot, LogOut, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import AIAssistant from "@/components/AIAssistant";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import apiClient, { MedicineSearchResponse, MedicineData } from "@/lib/api";
 
 const quickActions = [
   { icon: Activity, label: "Symptom Checker", color: "from-primary to-secondary" },
@@ -34,13 +35,48 @@ const Home = () => {
     toast.info("Voice search coming soon!");
   };
 
+  // Update the handleCameraSearch function in Home.tsx
   const handleCameraSearch = () => {
-    toast.info("Camera scan coming soon!");
+    navigate("/medicine-scanner");
   };
 
-  const handleSearch = () => {
-    if (searchQuery.trim()) {
-      toast.success(`Searching for: ${searchQuery}`);
+  const [searchResults, setSearchResults] = useState<MedicineData[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    
+    setIsSearching(true);
+    setShowResults(true);
+    setSearchResults([]);
+    
+    try {
+      const response = await apiClient.get<MedicineSearchResponse>(`/medicines?search=${encodeURIComponent(searchQuery.trim())}`);
+      
+      if (response.status === 'success') {
+        setSearchResults(response.data?.medicines || []);
+        
+        // Store search in user history
+        try {
+          await apiClient.post('/users/search-history', {
+            query: searchQuery.trim(),
+            type: 'text',
+            resultCount: response.data?.medicines?.length || 0
+          });
+        } catch (historyError) {
+          console.error('Failed to save search history:', historyError);
+        }
+      } else {
+        toast.error('Failed to search medicines');
+        setSearchResults([]);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      toast.error('An error occurred while searching');
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -100,6 +136,66 @@ const Home = () => {
               <Camera className="w-5 h-5 text-primary" />
             </Button>
           </div>
+          
+          {/* Search Results */}
+          {showResults && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg z-10 max-h-[400px] overflow-auto">
+              <div className="flex justify-between items-center p-3 border-b">
+                <h3 className="font-medium">Search Results</h3>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  onClick={() => setShowResults(false)}
+                  className="h-8 w-8 rounded-full"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {isSearching ? (
+                <div className="flex justify-center items-center p-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : searchResults.length > 0 ? (
+                <div className="divide-y">
+                  {searchResults.map((medicine) => (
+                    <div 
+                      key={medicine._id} 
+                      className="p-3 hover:bg-muted/50 cursor-pointer"
+                      onClick={() => navigate(`/medicines/${medicine._id}`)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Pill className="h-5 w-5 text-primary mt-0.5" />
+                        <div>
+                          <h4 className="font-medium">{medicine.name}</h4>
+                          {medicine.genericName && (
+                            <p className="text-sm text-muted-foreground">{medicine.genericName}</p>
+                          )}
+                          {medicine.description && (
+                            <p className="text-sm mt-1 line-clamp-2">{medicine.description}</p>
+                          )}
+                          <div className="flex gap-2 mt-1">
+                            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                              {medicine.category}
+                            </span>
+                            {medicine.isPrescriptionRequired && (
+                              <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
+                                Prescription
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-6 text-center text-muted-foreground">
+                  No medicines found for "{searchQuery}"
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

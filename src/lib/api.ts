@@ -6,6 +6,57 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://10.0.2.2:5000/api';
 // Log the API URL for debugging
 console.log('API Base URL:', API_BASE_URL);
 
+// API response types
+export interface ApiResponse<T> {
+  status: 'success' | 'error';
+  message?: string;
+  data?: T;
+}
+
+export interface MedicineData {
+  _id: string;
+  name: string;
+  genericName?: string;
+  category: string;
+  description?: string;
+  indications?: string[];
+  dosage?: {
+    adult?: {
+      min?: string;
+      max?: string;
+      unit?: string;
+      frequency?: string;
+    };
+    pediatric?: {
+      min?: string;
+      max?: string;
+      unit?: string;
+      frequency?: string;
+    };
+  };
+  sideEffects?: string[];
+  contraindications?: string[];
+  warnings?: string[];
+  isPrescriptionRequired?: boolean;
+}
+
+export interface MedicineSearchResponse {
+  medicines: MedicineData[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalMedicines: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
+
+export interface MedicineScanResponse {
+  medicine: MedicineData;
+  source?: string;
+  confidence?: number;
+}
+
 class ApiClient {
     private baseURL: string;
     private token: string | null = null;
@@ -85,6 +136,21 @@ class ApiClient {
 
     async logout() {
         this.setToken(null);
+    }
+
+    // Generic request methods
+    async get<T>(endpoint: string, params?: Record<string, string>) {
+        const url = params ? `${endpoint}?${new URLSearchParams(params)}` : endpoint;
+        return this.request<ApiResponse<T>>(url, {
+            method: 'GET'
+        });
+    }
+
+    async post<T>(endpoint: string, data?: any) {
+        return this.request<ApiResponse<T>>(endpoint, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
     }
 
     // User endpoints
@@ -238,11 +304,11 @@ class ApiClient {
         if (params?.limit) queryParams.append('limit', params.limit.toString());
 
         const query = queryParams.toString();
-        return this.request(`/medicines${query ? `?${query}` : ''}`);
+        return this.request<ApiResponse<MedicineSearchResponse>>(`/medicines${query ? `?${query}` : ''}`);
     }
 
     async getMedicine(id: string) {
-        return this.request(`/medicines/${id}`);
+        return this.request<ApiResponse<{ medicine: MedicineData }>>(`/medicines/${id}`);
     }
 
     async getMedicineCategories() {

@@ -3,11 +3,50 @@ import { body } from 'express-validator';
 import User from '../models/User.js';
 import { authenticate } from '../middleware/auth.js';
 import { validateRequest } from '../utils/validation.js';
+import Medicine from '../models/Medicine.js';
 
 const router = express.Router();
 
 // Apply authentication middleware to all routes
 router.use(authenticate);
+
+// @route   POST /api/users/search-history
+// @desc    Save user search history
+// @access  Private
+router.post('/search-history', [
+    body('query').notEmpty().withMessage('Search query is required'),
+    body('type').isIn(['text', 'image']).withMessage('Type must be text or image'),
+    body('resultCount').optional().isNumeric().withMessage('Result count must be a number'),
+    body('medicineId').optional().isMongoId().withMessage('Invalid medicine ID'),
+], validateRequest, async (req, res, next) => {
+    try {
+        const { query, type, resultCount, medicineId } = req.body;
+        
+        const searchEntry = {
+            query,
+            type,
+            resultCount: resultCount || 0,
+            timestamp: new Date()
+        };
+        
+        if (medicineId) {
+            searchEntry.medicine = medicineId;
+        }
+        
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            { $push: { searchHistory: { $each: [searchEntry], $position: 0, $slice: 50 } } },
+            { new: true }
+        );
+        
+        res.json({
+            status: 'success',
+            message: 'Search history saved'
+        });
+    } catch (error) {
+        next(error);
+    }
+});
 
 // @route   GET /api/users/profile
 // @desc    Get current user profile

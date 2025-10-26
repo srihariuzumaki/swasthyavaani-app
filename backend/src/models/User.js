@@ -65,6 +65,23 @@ const userSchema = new mongoose.Schema({
     lastLogin: {
         type: Date,
     },
+    searchHistory: [{
+        query: String,
+        type: {
+            type: String,
+            enum: ['text', 'image'],
+            default: 'text'
+        },
+        resultCount: Number,
+        medicine: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Medicine',
+        },
+        timestamp: {
+            type: Date,
+            default: Date.now
+        }
+    }],
 }, {
     timestamps: true,
 });

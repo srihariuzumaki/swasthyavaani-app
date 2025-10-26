@@ -17,6 +17,8 @@ import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
 import ProtectedRoute from "./components/ProtectedRoute";
+import MedicineScannerPage from "./pages/MedicineScanner";
+import MedicineDetail from "./pages/MedicineDetail";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +37,8 @@ const AppContent = () => {
         <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
+        <Route path="/medicine-scanner" element={<ProtectedRoute><MedicineScannerPage /></ProtectedRoute>} />
+        <Route path="/medicines/:id" element={<ProtectedRoute><MedicineDetail /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       {showBottomNav && <BottomNav />}

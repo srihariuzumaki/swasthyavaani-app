@@ -9,27 +9,56 @@ import twilio from 'twilio';
 const router = express.Router();
 
 // Initialize Twilio client
+console.log('Twilio Configuration Check:');
+console.log('TWILIO_ACCOUNT_SID:', process.env.TWILIO_ACCOUNT_SID ? 'Set' : 'Not Set');
+console.log('TWILIO_AUTH_TOKEN:', process.env.TWILIO_AUTH_TOKEN ? 'Set' : 'Not Set');
+console.log('TWILIO_PHONE_NUMBER:', process.env.TWILIO_PHONE_NUMBER || 'Not Set');
+
 const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
     ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
     : null;
 
+if (twilioClient) {
+    console.log('✅ Twilio client initialized successfully');
+} else {
+    console.log('⚠️  Twilio client not initialized - running in development mode');
+}
+
 // Send OTP via SMS
 const sendOTPviaSMS = async (phone, otpCode) => {
+    console.log(`📱 Attempting to send OTP to: ${phone}`);
+    
     if (!twilioClient) {
-        console.log(`[DEV] Would send OTP ${otpCode} to ${phone}`);
-        return;
+        console.log(`[DEV MODE] Would send OTP ${otpCode} to ${phone}`);
+        console.log('💡 In development mode, check the API response for the OTP code');
+        return { success: true, dev: true };
+    }
+    
+    if (!process.env.TWILIO_PHONE_NUMBER) {
+        throw new Error('TWILIO_PHONE_NUMBER is not configured');
     }
     
     try {
+        console.log(`📤 Sending SMS from ${process.env.TWILIO_PHONE_NUMBER} to ${phone}`);
+        
         const message = await twilioClient.messages.create({
             body: `Your Swasthya Vaani verification code is: ${otpCode}. Valid for 2 hours.`,
             from: process.env.TWILIO_PHONE_NUMBER,
             to: phone
         });
-        console.log(`SMS sent with SID: ${message.sid}`);
-        return message;
+        
+        console.log(`✅ SMS sent successfully with SID: ${message.sid}`);
+        console.log(`📊 Message status: ${message.status}`);
+        
+        return { success: true, sid: message.sid, status: message.status };
     } catch (error) {
-        console.error('Error sending SMS:', error);
+        console.error('❌ Error sending SMS:', error);
+        console.error('Error details:', {
+            code: error.code,
+            message: error.message,
+            moreInfo: error.moreInfo,
+            status: error.status
+        });
         throw new Error(`Failed to send SMS: ${error.message}`);
     }
 };
@@ -48,16 +77,19 @@ router.post('/send-otp', [
 ], validateRequest, async (req, res, next) => {
     try {
         const { phone, purpose = 'login' } = req.body;
+        console.log(`🔄 OTP request received for phone: ${phone}, purpose: ${purpose}`);
 
         // Generate and save OTP
         const otp = await OTP.generateOTP(phone, purpose);
+        console.log(`🔢 Generated OTP: ${otp.code} for ${phone}`);
 
         // Send OTP via SMS using Twilio
         let smsSent = true;
         try {
             await sendOTPviaSMS(phone, otp.code);
+            console.log(`✅ SMS sent successfully to ${phone}`);
         } catch (error) {
-            console.error('Failed to send SMS:', error);
+            console.error('❌ Failed to send SMS:', error);
             smsSent = false;
         }
 
@@ -68,18 +100,27 @@ router.post('/send-otp', [
             });
         }
 
-        res.json({
+        const response = {
             status: 'success',
             message: smsSent ? 'OTP sent successfully' : 'OTP generated (SMS not sent in dev)',
             data: {
                 phone,
                 expiresIn: '2 hours',
                 smsSent,
-                // Remove this in production
+                // Include OTP in development mode for testing
                 otp: process.env.NODE_ENV === 'development' ? otp.code : undefined,
             },
-        });
+        };
+
+        // Add development feedback
+        if (process.env.NODE_ENV === 'development' && !smsSent) {
+            response.data.devMessage = 'OTP included in response for development testing';
+        }
+
+        console.log(`✅ OTP process completed successfully for ${phone}`);
+        res.json(response);
     } catch (error) {
+        console.error('❌ Error in send-otp route:', error);
         next(error);
     }
 });

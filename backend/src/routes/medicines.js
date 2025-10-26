@@ -3,6 +3,7 @@ import { body, query } from 'express-validator';
 import Medicine from '../models/Medicine.js';
 import { authenticate } from '../middleware/auth.js';
 import { validateRequest } from '../utils/validation.js';
+import { scanMedicine } from '../controllers/medicineController.js';
 
 const router = express.Router();
 
@@ -264,4 +265,10 @@ router.delete('/:id', async (req, res, next) => {
     }
 });
 
+// Add this to your existing medicines.js routes file
+
+// @route   POST /api/medicines/scan
+// @desc    Scan medicine image and get information
+// @access  Public
+router.post('/scan', scanMedicine);
 export default router;

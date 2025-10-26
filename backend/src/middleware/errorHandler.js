@@ -1,3 +1,15 @@
+/**
+ * Creates a standardized error object with status code
+ * @param {number} statusCode - HTTP status code
+ * @param {string} message - Error message
+ * @returns {Error} Error object with status code
+ */
+export const createError = (statusCode, message) => {
+    const error = new Error(message);
+    error.statusCode = statusCode;
+    return error;
+};
+
 export const errorHandler = (err, req, res, next) => {
     let error = { ...err };
     error.message = err.message;
