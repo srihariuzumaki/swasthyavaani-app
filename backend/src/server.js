@@ -102,9 +102,10 @@ app.use('*', (req, res) => {
 app.use(errorHandler);
 
 // Start server - listen on all network interfaces (0.0.0.0)
-app.listen(PORT, '0.0.0.0', () => {
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
     console.log(`Access the API at http://localhost:${PORT} or http://YOUR_IP_ADDRESS:${PORT}`);
-});
-
+  });
+}
 export default app;
