@@ -53,19 +53,28 @@ router.post('/send-otp', [
         const otp = await OTP.generateOTP(phone, purpose);
 
         // Send OTP via SMS using Twilio
+        let smsSent = true;
         try {
             await sendOTPviaSMS(phone, otp.code);
         } catch (error) {
             console.error('Failed to send SMS:', error);
-            // Continue even if SMS fails - we'll show the OTP in development mode
+            smsSent = false;
+        }
+
+        if (!smsSent && process.env.NODE_ENV !== 'development') {
+            return res.status(502).json({
+                status: 'error',
+                message: 'Failed to send OTP via SMS. Please try again.',
+            });
         }
 
         res.json({
             status: 'success',
-            message: 'OTP sent successfully',
+            message: smsSent ? 'OTP sent successfully' : 'OTP generated (SMS not sent in dev)',
             data: {
                 phone,
                 expiresIn: '2 hours',
+                smsSent,
                 // Remove this in production
                 otp: process.env.NODE_ENV === 'development' ? otp.code : undefined,
             },
@@ -165,15 +174,29 @@ router.post('/resend-otp', [
         // Generate new OTP
         const otp = await OTP.generateOTP(phone, 'login');
 
-        // TODO: In production, send OTP via SMS service
-        console.log(`Resend OTP for ${phone}: ${otp.code}`);
+        // Send OTP via SMS using Twilio
+        let smsSent = true;
+        try {
+            await sendOTPviaSMS(phone, otp.code);
+        } catch (error) {
+            console.error('Failed to send SMS:', error);
+            smsSent = false;
+        }
+
+        if (!smsSent && process.env.NODE_ENV !== 'development') {
+            return res.status(502).json({
+                status: 'error',
+                message: 'Failed to send OTP via SMS. Please try again.',
+            });
+        }
 
         res.json({
             status: 'success',
-            message: 'OTP resent successfully',
+            message: smsSent ? 'OTP resent successfully' : 'OTP generated (SMS not sent in dev)',
             data: {
                 phone,
                 expiresIn: '2 hours',
+                smsSent,
                 // Remove this in production
                 otp: process.env.NODE_ENV === 'development' ? otp.code : undefined,
             },

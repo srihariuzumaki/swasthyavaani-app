@@ -5,7 +5,8 @@ const config: CapacitorConfig = {
   appName: 'Swasthya Vaani',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
+    // Use HTTP scheme so WebView doesn't block HTTP API calls
+    androidScheme: 'http',
     cleartext: true
   }
 };
