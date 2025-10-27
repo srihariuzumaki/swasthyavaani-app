@@ -4,6 +4,8 @@
  */
 
 const MEDLINEPLUS_API_BASE = 'https://connect.medlineplus.gov/service';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
 /**
  * Get medicine name suggestions from RxNav API
@@ -182,6 +184,58 @@ const parseMedlinePlusXML = (xmlData, medicineName) => {
   }
 };
 
+// Brand name to generic name mapping
+const BRAND_TO_GENERIC = {
+  'mahacef': 'cefixime',
+  'crocin': 'paracetamol',
+  'dolo': 'paracetamol',
+  'calpol': 'paracetamol',
+  'panadol': 'paracetamol',
+  'brufen': 'ibuprofen',
+  'advil': 'ibuprofen',
+  'glimstar': 'glimepiride',
+  'amaryl': 'glimepiride',
+  'glycomet': 'metformin',
+  'fortamet': 'metformin',
+  'pantodac': 'pantoprazole',
+  'omep': 'omeprazole',
+  'prilosec': 'omeprazole'
+};
+
+/**
+ * Fetch medicine information from Gemini AI
+ */
+const fetchFromGemini = async (medicineName) => {
+  try {
+    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
+      console.log('Gemini API key not configured');
+      return null;
+    }
+    
+    const prompt = `Provide medical information for "${medicineName}" in JSON: {"description":"brief description","genericName":"generic name","usage":["use1","use2"],"dosage":{"adult":"dosage","pediatric":"dosage"},"sideEffects":["eff1","eff2"],"precautions":["prec1","prec2"],"category":"category"}. Be concise.`;
+    
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    
+    const data = await response.json();
+    
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      const text = data.candidates[0].content.parts[0].text;
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching from Gemini:', error);
+    return null;
+  }
+};
+
 /**
  * Enhanced medicine data fetcher using multiple sources
  * Falls back to comprehensive manual data for common medicines
@@ -212,9 +266,57 @@ export const fetchComprehensiveMedicineData = async (medicineName) => {
     // If API doesn't have data, try local database
     medicineData = getComprehensiveMedicineData(medicineName);
     
-    // If not in local database, create basic structure for any medicine
+    // If not in local database, check brand name mapping
     if (!medicineData) {
-      medicineData = createBasicMedicineStructure(medicineName);
+      const genericName = BRAND_TO_GENERIC[medicineName.toLowerCase()];
+      if (genericName) {
+        // Try searching with generic name
+        medicineData = await fetchMedicineFromMedlinePlus(genericName);
+        if (medicineData) {
+          medicineData.name = medicineName;
+          medicineData.genericName = genericName;
+          return medicineData;
+        }
+      }
+      // Try Gemini AI as final fallback
+      const geminiData = await fetchFromGemini(medicineName);
+      
+      if (geminiData) {
+        medicineData = {
+          name: medicineName,
+          genericName: geminiData.genericName || genericName || medicineName,
+          category: geminiData.category || 'other',
+          description: geminiData.description || `${medicineName} - Medication`,
+          usage: geminiData.usage || ['As prescribed by healthcare provider'],
+          dosage: geminiData.dosage || {
+            adult: { min: 'As directed', max: 'As directed', frequency: 'As prescribed' },
+            pediatric: { byAge: [{ age: 'Children', dosage: 'Consult doctor' }] }
+          },
+          sideEffects: geminiData.sideEffects || ['Varies by individual'],
+          precautions: geminiData.precautions || ['Follow doctor instructions'],
+          contraindications: ['Known allergies', 'Severe conditions'],
+          interactions: [],
+          warnings: [
+            '⚠️ Consult qualified healthcare professional before use',
+            '⚠️ Do not self-medicate',
+            '⚠️ This info is for reference only'
+          ],
+          storageInstructions: 'Store at room temperature',
+          isPrescriptionRequired: true,
+          image: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=500'
+        };
+      } else {
+        medicineData = createBasicMedicineStructure(medicineName);
+        if (genericName) {
+          medicineData.genericName = genericName;
+          const category = getCategoryFromName(genericName);
+          medicineData.category = category;
+          medicineData.usage = getUsageFromName(genericName);
+          medicineData.dosage = getDosageFromName(genericName);
+          medicineData.sideEffects = getSideEffectsFromName(genericName);
+          medicineData.precautions = getPrecautionsFromName(genericName);
+        }
+      }
     }
     
     return medicineData;
