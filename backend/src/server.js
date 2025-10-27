@@ -44,38 +44,12 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// CORS configuration
+// CORS configuration - Allow all origins for API (security handled by JWT auth)
 app.use(cors({
-    origin: function(origin, callback) {
-        // Allow requests with no origin (like mobile apps, curl requests, Postman)
-        // Mobile apps don't send an Origin header
-        if (!origin) {
-            return callback(null, true);
-        }
-        
-        const allowedOrigins = [
-            process.env.FRONTEND_URL || 'http://localhost:5173',
-            'http://localhost:8080',
-            'http://localhost:3000',
-            'https://swasthyavaani-app.vercel.app',
-            'https://swasthyavaani.vercel.app'
-        ];
-        
-        // Check if the origin is allowed or if it's an IP address on the local network
-        const isLocalNetwork = /^https?:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin) || 
-                              /^https?:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin) ||
-                              /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin);
-        
-        if (allowedOrigins.indexOf(origin) !== -1 || isLocalNetwork) {
-            callback(null, true);
-        } else {
-            console.log('CORS blocked origin:', origin);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: true, // Allow all origins
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
 }));
 
 // Body parsing middleware

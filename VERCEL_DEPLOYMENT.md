@@ -10,10 +10,10 @@
 ### 2. ✅ CORS Error
 - **Problem**: Android mobile app requests were being blocked by CORS
 - **Solution**: 
-  - Updated CORS to properly handle requests with no origin (mobile apps)
-  - Added Vercel frontend URLs to allowed origins
+  - Simplified CORS to allow all origins (security handled by JWT authentication)
   - Configured helmet to not block CORS headers
-- **Files**: `backend/src/server.js` lines 30-76
+  - Allows mobile apps (no origin header) and web apps
+- **Files**: `backend/src/server.js` lines 30-49
 
 ## Key Changes
 
@@ -35,10 +35,11 @@
    - Added standard headers configuration
    - Removed legacy headers
 
-4. **CORS Configuration** (lines 48-76)
-   - Allows requests with no origin (mobile apps)
-   - Added Vercel URLs to allowed origins
+4. **CORS Configuration** (lines 48-52)
+   - Allows all origins (`origin: true`)
+   - Security is handled by JWT authentication
    - Added specific methods and headers
+   - Simplified to avoid complex origin checking
 
 ## Deployment Instructions
 
