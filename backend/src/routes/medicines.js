@@ -48,8 +48,8 @@ router.get('/', [
                 
                 if (!medicine) {
                     medicine = await Medicine.create({
-                        name: medicineData.name,
-                        genericName: medicineData.genericName,
+                        name: medicineData.name.substring(0, 100),
+                        genericName: (medicineData.genericName || '').substring(0, 100),
                         category: medicineData.category,
                         description: medicineData.description,
                         usage: Array.isArray(medicineData.usage) ? medicineData.usage.join(', ') : medicineData.usage,

@@ -13,6 +13,30 @@ const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/
  * @param {number} limit - Maximum number of suggestions (default: 10)
  * @returns {Promise<Array>} Array of medicine suggestions
  */
+// Helper function to clean and truncate medicine names
+const cleanMedicineName = (name) => {
+  if (!name) return name;
+  
+  // Remove RxNav metadata in braces
+  let cleaned = name.replace(/\{[^}]+\}/g, '').trim();
+  
+  // Extract brand name if in brackets
+  const brandMatch = cleaned.match(/\[([^\]]+)\]/);
+  if (brandMatch) {
+    cleaned = brandMatch[1];
+  }
+  
+  // Take first part before '/' if contains multiple medicines
+  cleaned = cleaned.split('/')[0].trim();
+  
+  // Truncate to 80 characters max
+  if (cleaned.length > 80) {
+    cleaned = cleaned.substring(0, 80);
+  }
+  
+  return cleaned || name.substring(0, 80);
+};
+
 export const getMedicineSuggestions = async (query, limit = 10) => {
   try {
     if (!query || query.length < 2) {
@@ -27,20 +51,23 @@ export const getMedicineSuggestions = async (query, limit = 10) => {
     
     // Get spelling suggestions
     if (data.suggestionGroup && data.suggestionGroup.suggestionList) {
-      suggestions = data.suggestionGroup.suggestionList.suggestion || [];
+      const rawSuggestions = data.suggestionGroup.suggestionList.suggestion || [];
+      // Clean each suggestion
+      suggestions = rawSuggestions.map(s => cleanMedicineName(s)).filter(s => s.length > 0);
     }
     
     // Also search for drugs with similar names
-    const drugSearchUrl = `https://rxnav.nlm.nih.gov/REST/drugs.json?name=${encodeURIComponent(query)}`;
-    const drugResponse = await fetch(drugSearchUrl);
-    const drugData = await drugResponse.json();
+    const drugSearchUrlAlt = `https://rxnav.nlm.nih.gov/REST/drugs.json?name=${encodeURIComponent(query)}`;
+    const drugResponseAlt = await fetch(drugSearchUrlAlt);
+    const drugDataAlt = await drugResponseAlt.json();
     
-    if (drugData.drugGroup && drugData.drugGroup.conceptGroup) {
-      drugData.drugGroup.conceptGroup.forEach(group => {
+    if (drugDataAlt.drugGroup && drugDataAlt.drugGroup.conceptGroup) {
+      drugDataAlt.drugGroup.conceptGroup.forEach(group => {
         if (group.conceptProperties) {
           group.conceptProperties.forEach(drug => {
-            if (!suggestions.includes(drug.name)) {
-              suggestions.push(drug.name);
+            const cleanedName = cleanMedicineName(drug.name);
+            if (cleanedName && !suggestions.includes(cleanedName)) {
+              suggestions.push(cleanedName);
             }
           });
         }
@@ -48,7 +75,7 @@ export const getMedicineSuggestions = async (query, limit = 10) => {
     }
     
     // Remove duplicates and limit results
-    const uniqueSuggestions = [...new Set(suggestions)];
+    const uniqueSuggestions = [...new Set(suggestions)].filter(s => s.length <= 80);
     return uniqueSuggestions.slice(0, limit);
   } catch (error) {
     console.error('Error getting medicine suggestions:', error);
