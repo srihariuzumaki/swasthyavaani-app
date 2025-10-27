@@ -123,6 +123,21 @@ router.get('/', [
     }
 });
 
+// @route   GET /api/medicines/suggestions
+// @desc    Get medicine name suggestions for autocomplete
+// @access  Public
+router.get('/suggestions', getSuggestions);
+
+// @route   POST /api/medicines/scan
+// @desc    Scan medicine image and get information
+// @access  Public
+router.post('/scan', scanMedicine);
+
+// @route   GET /api/medicines/search/:medicineName
+// @desc    Search medicine by name with comprehensive data
+// @access  Public
+router.get('/search/:medicineName', searchMedicineByName);
+
 // @route   GET /api/medicines/:id
 // @desc    Get medicine details
 // @access  Public
@@ -312,22 +327,5 @@ router.delete('/:id', async (req, res, next) => {
         next(error);
     }
 });
-
-// Add this to your existing medicines.js routes file
-
-// @route   POST /api/medicines/scan
-// @desc    Scan medicine image and get information
-// @access  Public
-router.post('/scan', scanMedicine);
-
-// @route   GET /api/medicines/search/:medicineName
-// @desc    Search medicine by name with comprehensive data
-// @access  Public
-router.get('/search/:medicineName', searchMedicineByName);
-
-// @route   GET /api/medicines/suggestions
-// @desc    Get medicine name suggestions for autocomplete
-// @access  Public
-router.get('/suggestions', getSuggestions);
 
 export default router;

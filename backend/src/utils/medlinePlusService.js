@@ -214,7 +214,17 @@ const fetchFromGemini = async (medicineName) => {
     
     console.log(`Calling Gemini API for: ${medicineName}`);
     
-    const prompt = `Provide medical information for "${medicineName}" in JSON: {"description":"brief description","genericName":"generic name","usage":["use1","use2"],"dosage":{"adult":"dosage","pediatric":"dosage"},"sideEffects":["eff1","eff2"],"precautions":["prec1","prec2"],"category":"category"}. Be concise.`;
+    const prompt = `Provide detailed medical information for "${medicineName}" in valid JSON format:
+{
+  "description": "2-3 sentence detailed description of what this medicine is and what it does",
+  "genericName": "generic name",
+  "usage": ["use1", "use2"],
+  "dosage": {"adult": "dosage details", "pediatric": "dosage for children"},
+  "sideEffects": ["effect1", "effect2"],
+  "precautions": ["precaution1", "precaution2"],
+  "category": "category"
+}
+Important: Give specific information about this medicine. Return ONLY valid JSON, no other text.`;
     
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
@@ -280,10 +290,10 @@ export const fetchComprehensiveMedicineData = async (medicineName) => {
           return medicineData;
         }
       }
-      // Try Gemini AI as final fallback
+      // Try Gemini AI for medicine information
       const geminiData = await fetchFromGemini(medicineName);
       
-      if (geminiData) {
+      if (geminiData && geminiData.description) {
         medicineData = {
           name: medicineName,
           genericName: geminiData.genericName || genericName || medicineName,
@@ -337,33 +347,38 @@ export const fetchComprehensiveMedicineData = async (medicineName) => {
  * @returns {Object} Basic medicine structure
  */
 const createBasicMedicineStructure = (medicineName, genericName = null) => {
+  const normalizedName = medicineName.toLowerCase();
+  
+  // Detect category and generic name from brand name
+  let detectedCategory = 'other';
+  let detectedGeneric = genericName || medicineName;
+  
+  if (normalizedName.includes('mahacef') || normalizedName.includes('cefix')) {
+    detectedCategory = 'antibiotic';
+    detectedGeneric = 'Cefixime';
+  } else if (normalizedName.includes('glim')) {
+    detectedCategory = 'diabetes';
+    detectedGeneric = 'Glimepiride';
+  } else if (normalizedName.includes('metformin') || normalizedName.includes('glycomet')) {
+    detectedCategory = 'diabetes';
+    detectedGeneric = 'Metformin';
+  }
+  
+  // Get category-specific info
+  const category = detectedCategory === 'other' ? getCategoryFromName(medicineName) : detectedCategory;
+  const usage = getUsageFromName(category === 'other' ? medicineName : category);
+  const dosage = getDosageFromName(category === 'other' ? medicineName : category);
+  const sideEffects = getSideEffectsFromName(category === 'other' ? medicineName : category);
+  const precautions = getPrecautionsFromName(category === 'other' ? medicineName : category);
+  
   return {
     name: medicineName,
-    genericName: genericName || medicineName,
-    category: 'other',
-    description: `${medicineName} - Information retrieved from database`,
-    usage: [
-      'As prescribed by healthcare provider',
-      'Consult doctor for specific uses'
-    ],
-    dosage: {
-      adult: {
-        min: 'As directed',
-        max: 'As directed',
-        unit: '',
-        frequency: 'As prescribed',
-        maxDaily: 'Consult healthcare provider'
-      },
-      pediatric: {
-        byAge: [
-          { age: 'All ages', dosage: 'Consult healthcare provider for proper dosing' }
-        ]
-      }
-    },
-    sideEffects: [
-      'Side effects vary by individual',
-      'Contact healthcare provider if experiencing adverse effects'
-    ],
+    genericName: detectedGeneric,
+    category: category,
+    description: `${medicineName}${detectedGeneric !== medicineName ? ` (${detectedGeneric})` : ''} - Pharmaceutical medication`,
+    usage: usage,
+    dosage: dosage,
+    sideEffects: sideEffects,
     ageRestrictions: {
       minimumAge: { value: '0', unit: 'months' },
       notes: 'Consult healthcare provider for age-specific dosing'
