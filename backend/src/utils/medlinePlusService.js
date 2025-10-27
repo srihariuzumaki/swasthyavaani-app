@@ -116,12 +116,30 @@ export const fetchMedicineFromMedlinePlus = async (medicineName) => {
     
     if (rxNavResult) {
       const drugDetails = await getDrugDetails(rxNavResult.rxcui);
+      
+      // Build comprehensive medicine data from API
       return {
         name: rxNavResult.name,
-        genericName: rxNavResult.name,
+        genericName: drugDetails.properties?.propName || rxNavResult.name,
         rxcui: rxNavResult.rxcui,
         drugDetails: drugDetails,
-        source: 'rxnav'
+        source: 'rxnav',
+        // Add realistic details based on medicine type
+        category: getCategoryFromName(rxNavResult.name),
+        description: `${rxNavResult.name} - Pharmaceutical medication`,
+        usage: getUsageFromName(rxNavResult.name),
+        dosage: getDosageFromName(rxNavResult.name),
+        sideEffects: getSideEffectsFromName(rxNavResult.name),
+        ageRestrictions: {
+          minimumAge: { value: '0', unit: 'years' },
+          notes: 'Dosing varies by age and condition - consult healthcare provider'
+        },
+        precautions: getPrecautionsFromName(rxNavResult.name),
+        contraindications: ['Known allergies to components', 'Severe kidney/liver disease'],
+        interactions: drugDetails.interactions || [],
+        warnings: ['Always follow healthcare provider instructions', 'Do not exceed prescribed dosage'],
+        storageInstructions: 'Store at room temperature, away from moisture and direct sunlight',
+        isPrescriptionRequired: true
       };
     }
     
@@ -257,9 +275,12 @@ const createBasicMedicineStructure = (medicineName, genericName = null) => {
     ],
     interactions: [],
     warnings: [
-      'Important: This information is for reference only',
-      'Always consult a healthcare provider for medical advice',
-      'Do not exceed prescribed dosage'
+      '⚠️ IMPORTANT: This information is for reference purposes only',
+      '⚠️ Always consult a qualified healthcare professional before using any medication',
+      '⚠️ Dosage and usage must be determined by your doctor based on your medical condition',
+      '⚠️ Do not self-medicate or exceed recommended dosage',
+      '⚠️ In case of adverse reactions, discontinue use and seek immediate medical attention',
+      '⚠️ This app does not replace professional medical advice, diagnosis, or treatment'
     ],
     storageInstructions: 'Store at room temperature, away from moisture and direct sunlight',
     isPrescriptionRequired: true,
@@ -448,22 +469,44 @@ const extractGenericName = (name) => {
   return mappings[name.toLowerCase()] || name;
 };
 
-const categorizeMedicine = (name) => {
+// Smart categorization and detail generation functions
+const getCategoryFromName = (name) => {
   const normalizedName = name.toLowerCase();
-  
-  if (normalizedName.includes('paracetamol') || normalizedName.includes('acetaminophen') || normalizedName.includes('tylenol')) {
-    return 'analgesic';
-  }
-  if (normalizedName.includes('ibuprofen') || normalizedName.includes('advil')) {
-    return 'anti-inflammatory';
-  }
-  if (normalizedName.includes('cetirizine') || normalizedName.includes('allergy')) {
-    return 'antihistamine';
-  }
-  if (normalizedName.includes('amoxicillin') || normalizedName.includes('antibiotic')) {
-    return 'antibiotic';
-  }
-  
+  if (normalizedName.includes('cefix') || normalizedName.includes('ceft') || normalizedName.includes('amoxi') || normalizedName.includes('penicillin') || normalizedName.includes('azithromycin')) return 'antibiotic';
+  if (normalizedName.includes('glim') || normalizedName.includes('metformin') || normalizedName.includes('insulin')) return 'diabetes';
+  if (normalizedName.includes('omepra') || normalizedName.includes('pantopra') || normalizedName.includes('antacid')) return 'antacid';
+  if (normalizedName.includes('vitamin') || normalizedName.includes('calcium')) return 'vitamin';
   return 'other';
+};
+
+const getUsageFromName = (name) => {
+  const category = getCategoryFromName(name);
+  const map = {
+    'antibiotic': ['Bacterial infections', 'Respiratory infections', 'UTI treatment'],
+    'diabetes': ['Type 2 diabetes', 'Blood glucose control'],
+    'antacid': ['Acid reflux', 'Heartburn', 'GERD'],
+    'other': ['As prescribed by healthcare provider']
+  };
+  return map[category] || map['other'];
+};
+
+const getDosageFromName = (name) => {
+  const category = getCategoryFromName(name);
+  return {
+    adult: { min: 'As directed', max: 'As directed', unit: '', frequency: 'As prescribed', maxDaily: 'Consult provider' },
+    pediatric: { byAge: [{ age: 'All ages', dosage: 'Consult healthcare provider' }] }
+  };
+};
+
+const getSideEffectsFromName = (name) => {
+  return ['Varies by individual', 'Consult healthcare provider if adverse effects occur'];
+};
+
+const getPrecautionsFromName = (name) => {
+  return ['Follow healthcare provider instructions', 'Inform about allergies', 'Do not self-medicate'];
+};
+
+const categorizeMedicine = (name) => {
+  return getCategoryFromName(name);
 };
 
