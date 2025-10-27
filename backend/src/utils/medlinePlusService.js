@@ -356,12 +356,18 @@ const createBasicMedicineStructure = (medicineName, genericName = null) => {
   if (normalizedName.includes('mahacef') || normalizedName.includes('cefix')) {
     detectedCategory = 'antibiotic';
     detectedGeneric = 'Cefixime';
+  } else if (normalizedName.includes('dolo') || normalizedName.includes('crocin') || normalizedName.includes('paracetamol')) {
+    detectedCategory = 'analgesic';
+    detectedGeneric = 'Paracetamol';
   } else if (normalizedName.includes('glim')) {
     detectedCategory = 'diabetes';
     detectedGeneric = 'Glimepiride';
   } else if (normalizedName.includes('metformin') || normalizedName.includes('glycomet')) {
     detectedCategory = 'diabetes';
     detectedGeneric = 'Metformin';
+  } else if (normalizedName.includes('brufen') || normalizedName.includes('ibuprofen')) {
+    detectedCategory = 'anti-inflammatory';
+    detectedGeneric = 'Ibuprofen';
   }
   
   // Get category-specific info
@@ -375,7 +381,7 @@ const createBasicMedicineStructure = (medicineName, genericName = null) => {
     name: medicineName,
     genericName: detectedGeneric,
     category: category,
-    description: `${medicineName}${detectedGeneric !== medicineName ? ` (${detectedGeneric})` : ''} - Pharmaceutical medication`,
+    description: getDetailedDescription(medicineName, detectedGeneric, category),
     usage: usage,
     dosage: dosage,
     sideEffects: sideEffects,
@@ -623,6 +629,21 @@ const getSideEffectsFromName = (name) => {
 
 const getPrecautionsFromName = (name) => {
   return ['Follow healthcare provider instructions', 'Inform about allergies', 'Do not self-medicate'];
+};
+
+// Generate detailed description based on medicine information
+const getDetailedDescription = (medicineName, genericName, category) => {
+  const descriptions = {
+    'antibiotic': `${medicineName} contains ${genericName}, an antibiotic medication used to treat bacterial infections. It works by stopping the growth of bacteria in the body.`,
+    'diabetes': `${medicineName} contains ${genericName}, a medication used to control blood sugar levels in people with diabetes. It helps the body use insulin more effectively.`,
+    'antacid': `${medicineName} contains ${genericName}, used to reduce stomach acid and treat conditions like acid reflux, heartburn, and gastric ulcers.`,
+    'vitamin': `${medicineName} is a vitamin supplement containing ${genericName}. Vitamins are essential nutrients required for normal body functions and preventing deficiencies.`,
+    'analgesic': `${medicineName} contains ${genericName}, a pain reliever and fever reducer. It works by blocking pain signals in the brain and reducing fever.`,
+    'anti-inflammatory': `${medicineName} contains ${genericName}, a medication that reduces inflammation, swelling, and pain in the body.`,
+    'other': `${medicineName}${genericName !== medicineName ? ` (${genericName})` : ''} is a pharmaceutical medication. Always consult with a healthcare professional to understand its specific uses and proper administration for your condition.`
+  };
+  
+  return descriptions[category] || descriptions['other'];
 };
 
 const categorizeMedicine = (name) => {

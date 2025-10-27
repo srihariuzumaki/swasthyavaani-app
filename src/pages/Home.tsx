@@ -51,13 +51,23 @@ const Home = () => {
     const fetchSuggestions = async () => {
       if (searchQuery.length >= 2) {
         try {
-          const response = await apiClient.get(`/medicines/suggestions?query=${encodeURIComponent(searchQuery)}`);
-          if (response.status === 'success') {
-            setSuggestions(response.data?.suggestions || []);
+          const response: any = await apiClient.get(`/medicines/suggestions?query=${encodeURIComponent(searchQuery)}`);
+          console.log('Suggestions response:', response);
+          
+          // Handle ApiResponse wrapper
+          const suggestionsList = response.data?.suggestions || response.data?.data?.suggestions || [];
+          console.log('Suggestions list:', suggestionsList);
+          
+          if (suggestionsList.length > 0) {
+            setSuggestions(suggestionsList);
             setShowSuggestions(true);
+          } else {
+            setSuggestions([]);
+            setShowSuggestions(false);
           }
         } catch (error) {
           console.error('Error fetching suggestions:', error);
+          setSuggestions([]);
         }
       } else {
         setSuggestions([]);
