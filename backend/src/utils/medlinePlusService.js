@@ -208,9 +208,11 @@ const BRAND_TO_GENERIC = {
 const fetchFromGemini = async (medicineName) => {
   try {
     if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
-      console.log('Gemini API key not configured');
+      console.log('⚠️ Gemini API key not configured - skipping AI-powered search');
       return null;
     }
+    
+    console.log(`Calling Gemini API for: ${medicineName}`);
     
     const prompt = `Provide medical information for "${medicineName}" in JSON: {"description":"brief description","genericName":"generic name","usage":["use1","use2"],"dosage":{"adult":"dosage","pediatric":"dosage"},"sideEffects":["eff1","eff2"],"precautions":["prec1","prec2"],"category":"category"}. Be concise.`;
     
