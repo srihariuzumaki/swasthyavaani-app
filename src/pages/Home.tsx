@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -43,9 +43,35 @@ const Home = () => {
   const [searchResults, setSearchResults] = useState<MedicineData[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Fetch suggestions as user types
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (searchQuery.length >= 2) {
+        try {
+          const response = await apiClient.get(`/medicines/suggestions?query=${encodeURIComponent(searchQuery)}`);
+          if (response.status === 'success') {
+            setSuggestions(response.data?.suggestions || []);
+            setShowSuggestions(true);
+          }
+        } catch (error) {
+          console.error('Error fetching suggestions:', error);
+        }
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    };
+
+    const debounce = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(debounce);
+  }, [searchQuery]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
+    setShowSuggestions(false);
     
     setIsSearching(true);
     setShowResults(true);
@@ -114,10 +140,40 @@ const Home = () => {
             placeholder="Search medicines..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSearch();
+              } else if (e.key === 'Escape') {
+                setShowSuggestions(false);
+              }
+            }}
+            onFocus={() => searchQuery.length >= 2 && setShowSuggestions(true)}
             className="pl-12 pr-24 py-6 bg-white/95 backdrop-blur border-0 shadow-lg text-foreground placeholder:text-muted-foreground"
           />
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          
+          {/* Suggestions dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg z-20 max-h-[300px] overflow-auto">
+              <div className="divide-y">
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      setSearchQuery(suggestion);
+                      setShowSuggestions(false);
+                      setTimeout(() => handleSearch(), 100);
+                    }}
+                    className="w-full text-left p-3 hover:bg-muted/50 cursor-pointer flex items-center gap-2"
+                  >
+                    <Search className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm">{suggestion}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
             <Button
               size="icon"

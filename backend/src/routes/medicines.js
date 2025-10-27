@@ -3,7 +3,7 @@ import { body, query } from 'express-validator';
 import Medicine from '../models/Medicine.js';
 import { authenticate } from '../middleware/auth.js';
 import { validateRequest } from '../utils/validation.js';
-import { scanMedicine, searchMedicineByName } from '../controllers/medicineController.js';
+import { scanMedicine, searchMedicineByName, getSuggestions } from '../controllers/medicineController.js';
 
 const router = express.Router();
 
@@ -34,6 +34,54 @@ router.get('/', [
 ], validateRequest, async (req, res, next) => {
     try {
         const { search, category, page = 1, limit = 20 } = req.query;
+
+        // If searching, try comprehensive API first
+        if (search) {
+            const { fetchComprehensiveMedicineData } = await import('../utils/medlinePlusService.js');
+            const medicineData = await fetchComprehensiveMedicineData(search);
+            
+            if (medicineData && medicineData.name) {
+                // Create or update medicine in database
+                let medicine = await Medicine.findOne({ 
+                    name: { $regex: medicineData.name, $options: 'i' } 
+                });
+                
+                if (!medicine) {
+                    medicine = await Medicine.create({
+                        name: medicineData.name,
+                        genericName: medicineData.genericName,
+                        category: medicineData.category,
+                        description: medicineData.description,
+                        usage: Array.isArray(medicineData.usage) ? medicineData.usage.join(', ') : medicineData.usage,
+                        indications: medicineData.usage,
+                        dosage: medicineData.dosage,
+                        sideEffects: medicineData.sideEffects,
+                        contraindications: medicineData.contraindications,
+                        interactions: medicineData.interactions,
+                        warnings: medicineData.warnings,
+                        ageRestrictions: medicineData.ageRestrictions,
+                        image: medicineData.image,
+                        storageInstructions: medicineData.storageInstructions,
+                        precautions: medicineData.precautions,
+                        isPrescriptionRequired: medicineData.isPrescriptionRequired || false,
+                    });
+                }
+                
+                return res.json({
+                    status: 'success',
+                    data: {
+                        medicines: [medicine],
+                        pagination: {
+                            currentPage: 1,
+                            totalPages: 1,
+                            totalMedicines: 1,
+                            hasNext: false,
+                            hasPrev: false,
+                        },
+                    },
+                });
+            }
+        }
 
         let query = { isActive: true };
 
@@ -276,5 +324,10 @@ router.post('/scan', scanMedicine);
 // @desc    Search medicine by name with comprehensive data
 // @access  Public
 router.get('/search/:medicineName', searchMedicineByName);
+
+// @route   GET /api/medicines/suggestions
+// @desc    Get medicine name suggestions for autocomplete
+// @access  Public
+router.get('/suggestions', getSuggestions);
 
 export default router;

@@ -6,6 +6,55 @@
 const MEDLINEPLUS_API_BASE = 'https://connect.medlineplus.gov/service';
 
 /**
+ * Get medicine name suggestions from RxNav API
+ * @param {string} query - Partial medicine name
+ * @param {number} limit - Maximum number of suggestions (default: 10)
+ * @returns {Promise<Array>} Array of medicine suggestions
+ */
+export const getMedicineSuggestions = async (query, limit = 10) => {
+  try {
+    if (!query || query.length < 2) {
+      return [];
+    }
+    
+    const searchUrl = `https://rxnav.nlm.nih.gov/REST/spellingsuggestions.json?name=${encodeURIComponent(query)}`;
+    const response = await fetch(searchUrl);
+    const data = await response.json();
+    
+    let suggestions = [];
+    
+    // Get spelling suggestions
+    if (data.suggestionGroup && data.suggestionGroup.suggestionList) {
+      suggestions = data.suggestionGroup.suggestionList.suggestion || [];
+    }
+    
+    // Also search for drugs with similar names
+    const drugSearchUrl = `https://rxnav.nlm.nih.gov/REST/drugs.json?name=${encodeURIComponent(query)}`;
+    const drugResponse = await fetch(drugSearchUrl);
+    const drugData = await drugResponse.json();
+    
+    if (drugData.drugGroup && drugData.drugGroup.conceptGroup) {
+      drugData.drugGroup.conceptGroup.forEach(group => {
+        if (group.conceptProperties) {
+          group.conceptProperties.forEach(drug => {
+            if (!suggestions.includes(drug.name)) {
+              suggestions.push(drug.name);
+            }
+          });
+        }
+      });
+    }
+    
+    // Remove duplicates and limit results
+    const uniqueSuggestions = [...new Set(suggestions)];
+    return uniqueSuggestions.slice(0, limit);
+  } catch (error) {
+    console.error('Error getting medicine suggestions:', error);
+    return [];
+  }
+};
+
+/**
  * Search for medicine using RxNav API (free, comprehensive medicine database)
  * @param {string} medicineName - The name of the medicine
  * @returns {Promise<Object>} RxNorm search results

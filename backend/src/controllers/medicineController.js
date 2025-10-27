@@ -1,6 +1,6 @@
 import Medicine from '../models/Medicine.js';
 import { createError } from '../middleware/errorHandler.js';
-import { fetchComprehensiveMedicineData } from '../utils/medlinePlusService.js';
+import { fetchComprehensiveMedicineData, getMedicineSuggestions } from '../utils/medlinePlusService.js';
 
 // Medicine recognition function using trusted sources
 export const recognizeMedicineFromImage = async (imageBase64, useTrustedSources = false, medicineName = null) => {
@@ -157,6 +157,29 @@ export const searchMedicineByName = async (req, res, next) => {
     res.json({
       status: 'success',
       data: { medicine }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get medicine suggestions for autocomplete
+export const getSuggestions = async (req, res, next) => {
+  try {
+    const { query, limit = 10 } = req.query;
+    
+    if (!query || query.length < 2) {
+      return res.json({
+        status: 'success',
+        data: { suggestions: [] }
+      });
+    }
+    
+    const suggestions = await getMedicineSuggestions(query, parseInt(limit));
+    
+    res.json({
+      status: 'success',
+      data: { suggestions }
     });
   } catch (error) {
     next(error);
