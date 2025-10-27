@@ -82,6 +82,19 @@ const userSchema = new mongoose.Schema({
             default: Date.now
         }
     }],
+    personalMedicines: [{
+        medicine: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Medicine',
+        },
+        addedAt: {
+            type: Date,
+            default: Date.now
+        },
+        notes: String,
+        frequency: String,
+        dosage: String,
+    }],
 }, {
     timestamps: true,
 });

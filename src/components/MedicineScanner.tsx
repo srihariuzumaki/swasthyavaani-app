@@ -107,29 +107,10 @@ const MedicineScanner = () => {
       } else {
         setError("Could not identify medicine. Please try again with a clearer image.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing medicine image:", error);
-      setError("An error occurred while processing the image. Please try again.");
-      
-      // For demo purposes, show mock data if API is not yet implemented
-      setTimeout(() => {
-        const mockMedicineInfo = {
-          name: "Paracetamol",
-          genericName: "Acetaminophen",
-          description: "Pain reliever and fever reducer",
-          indications: ["headache", "fever", "body pain", "toothache"],
-          dosage: {
-            adult: { min: "500mg", max: "1000mg", unit: "mg", frequency: "every 4-6 hours" },
-            pediatric: { min: "10-15mg/kg", max: "15mg/kg", unit: "mg", frequency: "every 4-6 hours" }
-          },
-          sideEffects: ["nausea", "stomach upset", "liver damage (with overdose)"],
-          contraindications: ["liver disease", "alcoholism"],
-          warnings: ["Do not exceed 4000mg per day", "Consult doctor if fever persists"],
-          isPrescriptionRequired: false
-        };
-        setMedicineInfo(mockMedicineInfo);
-        setIsProcessing(false);
-      }, 2000);
+      const errorMessage = error?.message || "An error occurred while processing the image. Please try again.";
+      setError(errorMessage);
     } finally {
       setIsProcessing(false);
     }
