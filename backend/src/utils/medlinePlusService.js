@@ -255,9 +255,26 @@ Important: Give specific information about this medicine. Return ONLY valid JSON
     
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
+    
+    // Handle 304 Not Modified by returning null to use fallback
+    if (response.status === 304 || response.status === 429) {
+      console.log(`Gemini API returned ${response.status}, using fallback for ${medicineName}`);
+      return null;
+    }
+    
+    // Check if response is ok before parsing
+    if (!response.ok) {
+      console.log(`Gemini API returned status ${response.status}, using fallback for ${medicineName}`);
+      return null;
+    }
     
     const data = await response.json();
     
@@ -265,7 +282,12 @@ Important: Give specific information about this medicine. Return ONLY valid JSON
       const text = data.candidates[0].content.parts[0].text;
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.error('Error parsing Gemini response:', parseError);
+          return null;
+        }
       }
     }
     return null;
@@ -408,7 +430,7 @@ const createBasicMedicineStructure = (medicineName, genericName = null) => {
     name: medicineName,
     genericName: detectedGeneric,
     category: category,
-    description: getDetailedDescription(medicineName, detectedGeneric, category),
+    description: getDetailedDescription(medicineName, detectedGeneric, category) || `${medicineName}${detectedGeneric !== medicineName ? ` (${detectedGeneric})` : ''} is a pharmaceutical medication. Always consult with a healthcare professional to understand its specific uses, dosage, side effects, and proper administration for your medical condition. Do not self-medicate.`,
     usage: usage,
     dosage: dosage,
     sideEffects: sideEffects,
@@ -419,7 +441,8 @@ const createBasicMedicineStructure = (medicineName, genericName = null) => {
     precautions: [
       'Consult healthcare provider before use',
       'Inform doctor of any allergies',
-      'Follow prescribed dosage instructions'
+      'Follow prescribed dosage instructions',
+      'Do not self-medicate'
     ],
     contraindications: [
       'Known allergy to medication',

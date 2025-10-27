@@ -82,10 +82,10 @@ const Home = () => {
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     setShowSuggestions(false);
+    setSearchResults([]); // Clear previous results
     
     setIsSearching(true);
     setShowResults(true);
-    setSearchResults([]);
     
     try {
       const response = await apiClient.get<MedicineSearchResponse>(`/medicines?search=${encodeURIComponent(searchQuery.trim())}`);
@@ -155,17 +155,22 @@ const Home = () => {
                 handleSearch();
               } else if (e.key === 'Escape') {
                 setShowSuggestions(false);
+                setShowResults(false);
               }
             }}
             onFocus={() => searchQuery.length >= 2 && setShowSuggestions(true)}
+            onBlur={() => {
+              // Delay hiding suggestions to allow click events to fire
+              setTimeout(() => setShowSuggestions(false), 200);
+            }}
             className="pl-12 pr-24 py-6 bg-white/95 backdrop-blur border-0 shadow-lg text-foreground placeholder:text-muted-foreground"
           />
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           
-          {/* Suggestions dropdown */}
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg z-20 max-h-[300px] overflow-auto">
-              <div className="divide-y">
+          {/* Suggestions dropdown - only show when not showing results */}
+          {showSuggestions && suggestions.length > 0 && !showResults && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-20 max-h-[300px] overflow-auto">
+              <div className="divide-y dark:divide-gray-700">
                 {suggestions.map((suggestion, index) => (
                   <button
                     key={index}
@@ -205,7 +210,7 @@ const Home = () => {
           
           {/* Search Results */}
           {showResults && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg z-10 max-h-[400px] overflow-auto">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-30 max-h-[400px] overflow-auto">
               <div className="flex justify-between items-center p-3 border-b">
                 <h3 className="font-medium">Search Results</h3>
                 <Button 
