@@ -20,46 +20,62 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy (required for Vercel and other reverse proxies)
+app.set('trust proxy', 1);
+
 // Connect to MongoDB
 connectDB();
 
-// Security middleware
-app.use(helmet());
+// Security middleware (configured to work with CORS)
+app.use(helmet({
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false,
+    crossOriginOpenerPolicy: false,
+}));
 
-// Rate limiting
+// Rate limiting (configured for Vercel)
 const limiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
     message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    // Trust proxy is set above, so rate limiter will use X-Forwarded-For header
 });
 app.use(limiter);
 
 // CORS configuration
 app.use(cors({
-    origin: process.env.NODE_ENV === 'development' 
-        ? true // Allow all origins in development
-        : function(origin, callback) {
-            // Allow requests with no origin (like mobile apps, curl requests)
-            if(!origin) return callback(null, true);
-            
-            const allowedOrigins = [
-                process.env.FRONTEND_URL || 'http://localhost:5173',
-                'http://localhost:8080',
-                'http://localhost:3000'
-            ];
-            
-            // Check if the origin is allowed or if it's an IP address on the local network
-            const isLocalNetwork = /^https?:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin) || 
-                                  /^https?:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin) ||
-                                  /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin);
-            
-            if(allowedOrigins.indexOf(origin) !== -1 || isLocalNetwork) {
-                callback(null, true);
-            } else {
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
+    origin: function(origin, callback) {
+        // Allow requests with no origin (like mobile apps, curl requests, Postman)
+        // Mobile apps don't send an Origin header
+        if (!origin) {
+            return callback(null, true);
+        }
+        
+        const allowedOrigins = [
+            process.env.FRONTEND_URL || 'http://localhost:5173',
+            'http://localhost:8080',
+            'http://localhost:3000',
+            'https://swasthyavaani-app.vercel.app',
+            'https://swasthyavaani.vercel.app'
+        ];
+        
+        // Check if the origin is allowed or if it's an IP address on the local network
+        const isLocalNetwork = /^https?:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin) || 
+                              /^https?:\/\/10\.\d{1,3}\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin) ||
+                              /^https?:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}(:\d+)?$/.test(origin);
+        
+        if (allowedOrigins.indexOf(origin) !== -1 || isLocalNetwork) {
+            callback(null, true);
+        } else {
+            console.log('CORS blocked origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
 // Body parsing middleware
