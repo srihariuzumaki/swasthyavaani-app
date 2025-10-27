@@ -3,7 +3,7 @@ import { body, query } from 'express-validator';
 import Medicine from '../models/Medicine.js';
 import { authenticate } from '../middleware/auth.js';
 import { validateRequest } from '../utils/validation.js';
-import { scanMedicine } from '../controllers/medicineController.js';
+import { scanMedicine, searchMedicineByName } from '../controllers/medicineController.js';
 
 const router = express.Router();
 
@@ -271,4 +271,10 @@ router.delete('/:id', async (req, res, next) => {
 // @desc    Scan medicine image and get information
 // @access  Public
 router.post('/scan', scanMedicine);
+
+// @route   GET /api/medicines/search/:medicineName
+// @desc    Search medicine by name with comprehensive data
+// @access  Public
+router.get('/search/:medicineName', searchMedicineByName);
+
 export default router;

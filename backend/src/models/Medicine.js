@@ -72,6 +72,42 @@ const medicineSchema = new mongoose.Schema({
         type: Boolean,
         default: true,
     },
+    image: {
+        type: String,
+        trim: true,
+    },
+    ageRestrictions: {
+        minimumAge: {
+            value: String,
+            unit: { type: String, enum: ['days', 'weeks', 'months', 'years'], default: 'years' }
+        },
+        maximumAge: {
+            value: String,
+            unit: { type: String, enum: ['days', 'weeks', 'months', 'years'], default: 'years' }
+        },
+        notes: String,
+    },
+    rxNormId: {
+        type: String,
+        trim: true,
+    },
+    ndcCode: {
+        type: String,
+        trim: true,
+    },
+    medlinePlusUrl: {
+        type: String,
+        trim: true,
+    },
+    usage: String,
+    precautions: [{
+        type: String,
+        trim: true,
+    }],
+    storageInstructions: {
+        type: String,
+        trim: true,
+    },
     searchKeywords: [{
         type: String,
         lowercase: true,

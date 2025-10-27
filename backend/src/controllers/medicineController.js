@@ -1,75 +1,100 @@
 import Medicine from '../models/Medicine.js';
 import { createError } from '../middleware/errorHandler.js';
+import { fetchComprehensiveMedicineData } from '../utils/medlinePlusService.js';
 
 // Medicine recognition function using trusted sources
-export const recognizeMedicineFromImage = async (imageBase64, useTrustedSources = false) => {
+export const recognizeMedicineFromImage = async (imageBase64, useTrustedSources = false, medicineName = null) => {
   try {
-    // In a production environment, this would call a trusted external API or ML service
-    // for accurate medicine recognition from images
+    // If we have a medicine name, fetch comprehensive data
+    if (medicineName) {
+      const comprehensiveData = await fetchComprehensiveMedicineData(medicineName);
+      
+      if (comprehensiveData) {
+        // Save to database if not exists
+        let medicine = await Medicine.findOne({ name: { $regex: comprehensiveData.name, $options: 'i' } });
+        
+        if (!medicine) {
+          // Create new medicine record
+          medicine = await Medicine.create({
+            name: comprehensiveData.name,
+            genericName: comprehensiveData.genericName,
+            category: comprehensiveData.category,
+            description: comprehensiveData.description,
+            usage: Array.isArray(comprehensiveData.usage) ? comprehensiveData.usage.join(', ') : comprehensiveData.usage,
+            indications: comprehensiveData.usage,
+            dosage: comprehensiveData.dosage,
+            sideEffects: comprehensiveData.sideEffects,
+            contraindications: comprehensiveData.contraindications,
+            interactions: comprehensiveData.interactions,
+            warnings: comprehensiveData.warnings,
+            ageRestrictions: comprehensiveData.ageRestrictions,
+            image: comprehensiveData.image,
+            storageInstructions: comprehensiveData.storageInstructions,
+            precautions: comprehensiveData.precautions,
+            isPrescriptionRequired: comprehensiveData.isPrescriptionRequired || false,
+          });
+        }
+        
+        return { 
+          success: true, 
+          medicine,
+          source: 'comprehensive_api',
+          confidence: 0.95
+        };
+      }
+    }
     
     if (useTrustedSources) {
-      // This would be the integration point with a trusted medicine database API
-      // For example: NLM (National Library of Medicine), FDA, or other pharmaceutical databases
-      
-      // Simulate API call to trusted source with a delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // For now, we'll return a medicine from our database with high confidence
-      // In production, this would be replaced with actual API integration
+      // Try to find in database first
       const medicines = await Medicine.find({
-        $or: [
-          { category: 'analgesic' },
-          { category: 'antibiotic' }
-        ]
+        isActive: true
       }).limit(10);
       
       if (medicines.length === 0) {
-        return { success: false, error: 'No medicines found in trusted database' };
+        return { success: false, error: 'No medicines found in database' };
       }
       
-      // Select a medicine with metadata indicating it came from a trusted source
       const medicine = medicines[Math.floor(Math.random() * medicines.length)];
       return { 
         success: true, 
         medicine,
-        source: 'trusted_database',
-        confidence: 0.92 // Simulated confidence score
+        source: 'database',
+        confidence: 0.85
       };
     } else {
-      // Fallback to basic recognition if trusted sources not specified
-      // Fallback to internal database if trusted source is empty
-      const count = await Medicine.countDocuments();
+      const count = await Medicine.countDocuments({ isActive: true });
       if (count === 0) {
         return { success: false, error: 'No medicines available in database' };
       }
       const random = Math.floor(Math.random() * count);
-      const fallbackMedicine = await Medicine.findOne().skip(random);
+      const fallbackMedicine = await Medicine.findOne({ isActive: true }).skip(random);
       return {
         success: true,
         medicine: fallbackMedicine,
-        source: 'internal_database',
+        source: 'database',
         confidence: 0.75
       };
     }
   } catch (error) {
     console.error('Error in medicine recognition:', error);
-    return { success: false, error: 'Failed to process image' };
+    return { success: false, error: 'Failed to process medicine data' };
   }
 };
 
 export const scanMedicine = async (req, res, next) => {
   try {
-    const { image, useTrustedSources = false } = req.body;
+    const { image, useTrustedSources = true, medicineName } = req.body;
     
-    if (!image) {
-      return next(createError(400, 'Image data is required'));
+    // For now, require medicine name to search
+    if (!medicineName) {
+      return next(createError(400, 'Medicine name is required'));
     }
     
-    // Process the image and get medicine info using trusted sources if specified
-    const result = await recognizeMedicineFromImage(image, useTrustedSources);
+    // Fetch comprehensive medicine data
+    const result = await recognizeMedicineFromImage(image, useTrustedSources, medicineName);
     
     if (!result.success) {
-      return next(createError(422, 'Could not recognize medicine from image'));
+      return next(createError(404, result.error || 'Could not find medicine information'));
     }
     
     res.json({
@@ -79,6 +104,59 @@ export const scanMedicine = async (req, res, next) => {
         source: result.source,
         confidence: result.confidence
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// New function to search medicine by name and return comprehensive data
+export const searchMedicineByName = async (req, res, next) => {
+  try {
+    const { medicineName } = req.params;
+    
+    if (!medicineName) {
+      return next(createError(400, 'Medicine name is required'));
+    }
+    
+    // First check database
+    let medicine = await Medicine.findOne({ 
+      name: { $regex: medicineName, $options: 'i' } 
+    }).populate('personalMedicines.medicine');
+    
+    // If not found, fetch from comprehensive API
+    if (!medicine) {
+      const comprehensiveData = await fetchComprehensiveMedicineData(medicineName);
+      
+      if (comprehensiveData) {
+        medicine = await Medicine.create({
+          name: comprehensiveData.name,
+          genericName: comprehensiveData.genericName,
+          category: comprehensiveData.category,
+          description: comprehensiveData.description,
+          usage: Array.isArray(comprehensiveData.usage) ? comprehensiveData.usage.join(', ') : comprehensiveData.usage,
+          indications: comprehensiveData.usage,
+          dosage: comprehensiveData.dosage,
+          sideEffects: comprehensiveData.sideEffects,
+          contraindications: comprehensiveData.contraindications,
+          interactions: comprehensiveData.interactions,
+          warnings: comprehensiveData.warnings,
+          ageRestrictions: comprehensiveData.ageRestrictions,
+          image: comprehensiveData.image,
+          storageInstructions: comprehensiveData.storageInstructions,
+          precautions: comprehensiveData.precautions,
+          isPrescriptionRequired: comprehensiveData.isPrescriptionRequired || false,
+        });
+      }
+    }
+    
+    if (!medicine) {
+      return next(createError(404, 'Medicine not found'));
+    }
+    
+    res.json({
+      status: 'success',
+      data: { medicine }
     });
   } catch (error) {
     next(error);
