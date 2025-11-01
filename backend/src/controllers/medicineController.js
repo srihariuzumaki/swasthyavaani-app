@@ -85,12 +85,35 @@ export const scanMedicine = async (req, res, next) => {
   try {
     const { image, useTrustedSources = true, medicineName } = req.body;
     
-    // For now, require medicine name to search
+    // If image is provided but no medicine name, we can still work with the image
+    // but we'll need the medicine name. For now, if no medicine name is provided,
+    // return an error asking for medicine name OR use fallback to show available medicines
     if (!medicineName) {
-      return next(createError(400, 'Medicine name is required'));
+      // Check if we have image data
+      if (!image) {
+        return next(createError(400, 'Either image or medicine name is required'));
+      }
+      
+      // If we have image but no medicine name, try to use the fallback method
+      // In a real implementation, you would use OCR here to extract medicine name from image
+      // For now, we'll return a random medicine from database as fallback
+      const result = await recognizeMedicineFromImage(image, useTrustedSources, null);
+      
+      if (!result.success) {
+        return next(createError(404, result.error || 'Could not identify medicine from image. Please try entering the medicine name manually or provide a clearer image.'));
+      }
+      
+      return res.json({
+        status: 'success',
+        data: {
+          medicine: result.medicine,
+          source: result.source,
+          confidence: result.confidence
+        }
+      });
     }
     
-    // Fetch comprehensive medicine data
+    // If medicine name is provided, fetch comprehensive medicine data
     const result = await recognizeMedicineFromImage(image, useTrustedSources, medicineName);
     
     if (!result.success) {

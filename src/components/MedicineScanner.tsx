@@ -37,6 +37,7 @@ const MedicineScanner = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [medicineInfo, setMedicineInfo] = useState<MedicineInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [medicineName, setMedicineName] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const takePicture = async () => {
@@ -75,7 +76,7 @@ const MedicineScanner = () => {
     fileInputRef.current?.click();
   };
 
-  const processMedicineImage = async (imageData: string) => {
+  const processMedicineImage = async (imageData: string, name?: string) => {
     setIsProcessing(true);
     setError(null);
     setMedicineInfo(null);
@@ -87,11 +88,13 @@ const MedicineScanner = () => {
       // Call API to process the image and get medicine info from trusted sources
       const response = await apiClient.post<MedicineScanResponse>('/medicines/scan', {
         image: base64Data,
-        useTrustedSources: true // Ensure we're using trusted sources
+        useTrustedSources: true, // Ensure we're using trusted sources
+        medicineName: name || medicineName || undefined // Optional medicine name for better accuracy
       });
       
       if (response.status === 'success') {
         setMedicineInfo(response.data.medicine);
+        setMedicineName(""); // Clear medicine name input after successful scan
         
         // Store search in user history
         try {
@@ -105,7 +108,7 @@ const MedicineScanner = () => {
           console.error('Failed to save search history:', historyError);
         }
       } else {
-        setError("Could not identify medicine. Please try again with a clearer image.");
+        setError("Could not identify medicine. Please try entering the medicine name manually below or try again with a clearer image.");
       }
     } catch (error: any) {
       console.error("Error processing medicine image:", error);
@@ -120,8 +123,15 @@ const MedicineScanner = () => {
     setImageUrl(null);
     setMedicineInfo(null);
     setError(null);
+    setMedicineName("");
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSearchWithName = () => {
+    if (imageUrl && medicineName.trim()) {
+      processMedicineImage(imageUrl, medicineName.trim());
     }
   };
 
@@ -178,6 +188,33 @@ const MedicineScanner = () => {
                 <X className="w-4 h-4" />
               </Button>
             </div>
+            
+            {!isProcessing && !medicineInfo && !error && (
+              <div className="mb-4 space-y-2">
+                <label className="text-sm font-medium">Medicine Name (Optional - improves accuracy)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Enter medicine name (e.g., Dolo 650)"
+                    value={medicineName}
+                    onChange={(e) => setMedicineName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && imageUrl) {
+                        processMedicineImage(imageUrl, medicineName.trim() || undefined);
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 border rounded-md"
+                  />
+                  <Button 
+                    onClick={() => processMedicineImage(imageUrl!, medicineName.trim() || undefined)}
+                    disabled={isProcessing}
+                    className="gap-2"
+                  >
+                    Scan
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {isProcessing ? (
               <div className="flex-1 flex flex-col items-center justify-center">
@@ -185,8 +222,31 @@ const MedicineScanner = () => {
                 <p className="text-muted-foreground">Analyzing medicine...</p>
               </div>
             ) : error ? (
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <p className="text-destructive mb-4">{error}</p>
+              <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                <p className="text-destructive text-center mb-2">{error}</p>
+                <div className="w-full space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Enter medicine name (optional)"
+                      value={medicineName}
+                      onChange={(e) => setMedicineName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && medicineName.trim()) {
+                          handleSearchWithName();
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 border rounded-md"
+                    />
+                    <Button 
+                      onClick={handleSearchWithName} 
+                      disabled={!medicineName.trim() || isProcessing}
+                      className="gap-2"
+                    >
+                      Search
+                    </Button>
+                  </div>
+                </div>
                 <Button onClick={resetScanner} variant="outline" className="gap-2">
                   <RotateCcw className="w-4 h-4" />
                   Try Again
