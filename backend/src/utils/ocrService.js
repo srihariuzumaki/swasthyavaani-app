@@ -1,4 +1,5 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY';
+// Use same endpoint as medlinePlusService - gemini-1.5-flash supports vision
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
 /**
@@ -16,7 +17,40 @@ export const extractTextFromImage = async (imageBase64) => {
     
     const prompt = `Extract all text visible in this medicine packaging image. Return ONLY the text content found in the image, nothing else. Focus on medicine names, dosage information, and any other text visible on the packaging.`;
     
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    // Detect image MIME type from base64 (first bytes indicate format)
+    let mimeType = 'image/jpeg'; // default
+    if (imageBase64.startsWith('iVBORw0KGgo')) {
+      mimeType = 'image/png';
+    } else if (imageBase64.startsWith('/9j/') || imageBase64.startsWith('data:image/jpeg')) {
+      mimeType = 'image/jpeg';
+    } else if (imageBase64.startsWith('R0lGODlh')) {
+      mimeType = 'image/gif';
+    } else if (imageBase64.startsWith('UklGR')) {
+      mimeType = 'image/webp';
+    }
+    
+    console.log(`Detected image type: ${mimeType}, base64 length: ${imageBase64.length}`);
+    
+    // Try different endpoint formats - Gemini 1.5 Flash supports vision
+    const apiUrl = `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`;
+    
+    console.log('Calling Gemini API:', apiUrl.replace(GEMINI_API_KEY, 'HIDDEN'));
+    
+    const requestBody = {
+      contents: [{
+        parts: [
+          { text: prompt },
+          {
+            inline_data: {
+              mime_type: mimeType,
+              data: imageBase64
+            }
+          }
+        ]
+      }]
+    };
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -24,27 +58,58 @@ export const extractTextFromImage = async (imageBase64) => {
         'Pragma': 'no-cache',
         'Expires': '0'
       },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: prompt },
-            {
-              inline_data: {
-                mime_type: 'image/jpeg',
-                data: imageBase64
-              }
-            }
-          ]
-        }]
-      })
+      body: JSON.stringify(requestBody)
     });
     
     if (!response.ok) {
+      const errorText = await response.text();
       console.error('Gemini API error:', response.status, response.statusText);
-      throw new Error(`OCR API returned status ${response.status}`);
+      console.error('Error details:', errorText);
+      
+      // If 404, try with different endpoint formats
+      if (response.status === 404) {
+        console.log('404 error - trying alternative endpoint formats...');
+        
+        // Try alternative endpoints
+        const alternativeEndpoints = [
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent',
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent'
+        ];
+        
+        for (const endpoint of alternativeEndpoints) {
+          try {
+            const altUrl = `${endpoint}?key=${GEMINI_API_KEY}`;
+            console.log(`Trying alternative endpoint: ${endpoint}`);
+            const altResponse = await fetch(altUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(requestBody)
+            });
+            
+            if (altResponse.ok) {
+              const altData = await altResponse.json();
+              if (altData.candidates && altData.candidates[0] && altData.candidates[0].content) {
+                const text = altData.candidates[0].content.parts[0].text;
+                console.log(`Extracted text from image (using ${endpoint}):`, text);
+                return text;
+              }
+            }
+          } catch (altError) {
+            console.error(`Alternative endpoint ${endpoint} failed:`, altError.message);
+          }
+        }
+      }
+      
+      throw new Error(`OCR API returned status ${response.status}: ${errorText.substring(0, 200)}`);
     }
     
     const data = await response.json();
+    
+    if (data.error) {
+      console.error('Gemini API error in response:', data.error);
+      throw new Error(`Gemini API error: ${data.error.message || 'Unknown error'}`);
+    }
     
     if (data.candidates && data.candidates[0] && data.candidates[0].content) {
       const text = data.candidates[0].content.parts[0].text;
@@ -55,7 +120,7 @@ export const extractTextFromImage = async (imageBase64) => {
     throw new Error('No text extracted from image');
   } catch (error) {
     console.error('OCR Error:', error);
-    throw new Error('Failed to extract text from image');
+    throw new Error(`Failed to extract text from image: ${error.message}`);
   }
 };
 
