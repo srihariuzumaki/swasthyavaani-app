@@ -7,6 +7,64 @@ const MEDLINEPLUS_API_BASE = 'https://connect.medlineplus.gov/service';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
+// Valid category enum values - must match Medicine model
+const VALID_CATEGORIES = [
+  'analgesic', 'antipyretic', 'anti-inflammatory', 'antibiotic', 'antihistamine',
+  'antacid', 'vitamin', 'supplement', 'cough-syrup', 'topical', 'diabetes', 'other'
+];
+
+/**
+ * Normalize category to a valid enum value
+ * Maps invalid categories to valid ones or defaults to 'other'
+ * @param {string} category - Category string to normalize
+ * @returns {string} Valid category enum value
+ */
+const normalizeCategory = (category) => {
+  if (!category) return 'other';
+  
+  const normalized = category.toLowerCase().trim();
+  
+  // Direct match
+  if (VALID_CATEGORIES.includes(normalized)) {
+    return normalized;
+  }
+  
+  // Map common variations and synonyms
+  const categoryMapping = {
+    'diabetic': 'diabetes',
+    'diabetes medication': 'diabetes',
+    'pain reliever': 'analgesic',
+    'painkiller': 'analgesic',
+    'fever reducer': 'antipyretic',
+    'fever medicine': 'antipyretic',
+    'nsaid': 'anti-inflammatory',
+    'anti-inflammatory drug': 'anti-inflammatory',
+    'antiinflamm': 'anti-inflammatory',
+    'cough syrup': 'cough-syrup',
+    'cough medicine': 'cough-syrup',
+    'allergy medicine': 'antihistamine',
+    'antihistamine drug': 'antihistamine',
+    'stomach acid reducer': 'antacid',
+    'acid reducer': 'antacid',
+    'vitamin supplement': 'vitamin',
+    'supplement': 'supplement'
+  };
+  
+  if (categoryMapping[normalized]) {
+    return categoryMapping[normalized];
+  }
+  
+  // Check if category contains any valid category keywords
+  for (const validCategory of VALID_CATEGORIES) {
+    if (normalized.includes(validCategory) || validCategory.includes(normalized)) {
+      return validCategory;
+    }
+  }
+  
+  // Default to 'other' for any unrecognized category
+  return 'other';
+};
+
 /**
  * Get medicine name suggestions from RxNav API
  * @param {string} query - Partial medicine name
@@ -154,7 +212,7 @@ export const fetchMedicineFromMedlinePlus = async (medicineName) => {
         drugDetails: drugDetails,
         source: 'rxnav',
         // Add realistic details based on medicine type
-        category: getCategoryFromName(rxNavResult.name),
+        category: normalizeCategory(getCategoryFromName(rxNavResult.name)),
         description: `${rxNavResult.name} - Pharmaceutical medication`,
         usage: getUsageFromName(rxNavResult.name),
         dosage: getDosageFromName(rxNavResult.name),
@@ -194,7 +252,7 @@ const parseMedlinePlusXML = (xmlData, medicineName) => {
     const medicineData = {
       name: medicineName,
       genericName: extractGenericName(medicineName),
-      category: categorizeMedicine(medicineName),
+      category: normalizeCategory(categorizeMedicine(medicineName)),
       usage: 'Consult MedlinePlus for usage information',
       warnings: ['Consult a healthcare professional before use'],
       sideEffects: [],
@@ -349,7 +407,7 @@ export const fetchComprehensiveMedicineData = async (medicineName) => {
         medicineData = {
           name: medicineName,
           genericName: geminiData.genericName || genericName || medicineName,
-          category: geminiData.category || 'other',
+          category: normalizeCategory(geminiData.category) || 'other',
           description: geminiData.description || `${medicineName} - Medication`,
           usage: geminiData.usage || ['As prescribed by healthcare provider'],
           dosage: geminiData.dosage || {
@@ -374,7 +432,7 @@ export const fetchComprehensiveMedicineData = async (medicineName) => {
         if (genericName) {
           medicineData.genericName = genericName;
           const category = getCategoryFromName(genericName);
-          medicineData.category = category;
+          medicineData.category = normalizeCategory(category);
           medicineData.usage = getUsageFromName(genericName);
           medicineData.dosage = getDosageFromName(genericName);
           medicineData.sideEffects = getSideEffectsFromName(genericName);
@@ -423,7 +481,7 @@ const createBasicMedicineStructure = (medicineName, genericName = null) => {
   }
   
   // Get category-specific info
-  const category = detectedCategory === 'other' ? getCategoryFromName(medicineName) : detectedCategory;
+  const category = normalizeCategory(detectedCategory === 'other' ? getCategoryFromName(medicineName) : detectedCategory);
   const usage = getUsageFromName(category === 'other' ? medicineName : category);
   const dosage = getDosageFromName(category === 'other' ? medicineName : category);
   const sideEffects = getSideEffectsFromName(category === 'other' ? medicineName : category);
@@ -432,7 +490,7 @@ const createBasicMedicineStructure = (medicineName, genericName = null) => {
   return {
     name: medicineName,
     genericName: detectedGeneric,
-    category: category,
+    category: normalizeCategory(category),
     description: getDetailedDescription(medicineName, detectedGeneric, category) || `${medicineName}${detectedGeneric !== medicineName ? ` (${detectedGeneric})` : ''} is a pharmaceutical medication. Always consult with a healthcare professional to understand its specific uses, dosage, side effects, and proper administration for your medical condition. Do not self-medicate.`,
     usage: usage,
     dosage: dosage,

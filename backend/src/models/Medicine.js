@@ -18,7 +18,7 @@ const medicineSchema = new mongoose.Schema({
         required: [true, 'Category is required'],
         enum: [
             'analgesic', 'antipyretic', 'anti-inflammatory', 'antibiotic', 'antihistamine',
-            'antacid', 'vitamin', 'supplement', 'cough-syrup', 'topical', 'other'
+            'antacid', 'vitamin', 'supplement', 'cough-syrup', 'topical', 'diabetes', 'other'
         ],
     },
     description: {
