@@ -51,7 +51,10 @@ const MedicineScanner = () => {
 
       if (image.dataUrl) {
         setImageUrl(image.dataUrl);
-        processMedicineImage(image.dataUrl);
+        // Small delay to ensure image is set before processing
+        setTimeout(() => {
+          processMedicineImage(image.dataUrl);
+        }, 100);
       }
     } catch (error) {
       console.error("Error taking photo:", error);
@@ -66,8 +69,18 @@ const MedicineScanner = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const dataUrl = e.target?.result as string;
-      setImageUrl(dataUrl);
-      processMedicineImage(dataUrl);
+      if (dataUrl) {
+        setImageUrl(dataUrl);
+        // Small delay to ensure image is set before processing
+        setTimeout(() => {
+          processMedicineImage(dataUrl);
+        }, 100);
+      } else {
+        toast.error("Failed to load image. Please try again.");
+      }
+    };
+    reader.onerror = () => {
+      toast.error("Failed to read image file. Please try again.");
     };
     reader.readAsDataURL(file);
   };
@@ -85,6 +98,12 @@ const MedicineScanner = () => {
       // Extract base64 data from dataUrl
       const base64Data = imageData.split(',')[1];
       
+      if (!base64Data) {
+        throw new Error('Failed to extract image data. Please try again.');
+      }
+      
+      console.log('Processing medicine image...', { hasImage: !!base64Data, hasName: !!name });
+      
       // Call API to process the image and get medicine info from trusted sources
       const response = await apiClient.post<MedicineScanResponse>('/medicines/scan', {
         image: base64Data,
@@ -92,7 +111,9 @@ const MedicineScanner = () => {
         medicineName: name || medicineName || undefined // Optional medicine name for better accuracy
       });
       
-      if (response.status === 'success') {
+      console.log('Medicine scan response:', response);
+      
+      if (response.status === 'success' && response.data?.medicine) {
         setMedicineInfo(response.data.medicine);
         setMedicineName(""); // Clear medicine name input after successful scan
         
@@ -108,12 +129,15 @@ const MedicineScanner = () => {
           console.error('Failed to save search history:', historyError);
         }
       } else {
-        setError("Could not identify medicine. Please try entering the medicine name manually below or try again with a clearer image.");
+        const errorMsg = (response as any).message || (response as any).data?.message || "Could not identify medicine. Please try entering the medicine name manually below or try again with a clearer image.";
+        setError(errorMsg);
+        console.error('Scan failed:', response);
       }
     } catch (error: any) {
       console.error("Error processing medicine image:", error);
-      const errorMessage = error?.message || "An error occurred while processing the image. Please try again.";
+      const errorMessage = error?.response?.data?.message || error?.message || "An error occurred while processing the image. Please try again.";
       setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -216,12 +240,14 @@ const MedicineScanner = () => {
               </div>
             )}
 
-            {isProcessing ? (
+            {isProcessing && (
               <div className="flex-1 flex flex-col items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
                 <p className="text-muted-foreground">Analyzing medicine...</p>
               </div>
-            ) : error ? (
+            )}
+            
+            {error && (
               <div className="flex-1 flex flex-col items-center justify-center gap-4">
                 <p className="text-destructive text-center mb-2">{error}</p>
                 <div className="w-full space-y-2">
@@ -252,7 +278,9 @@ const MedicineScanner = () => {
                   Try Again
                 </Button>
               </div>
-            ) : medicineInfo ? (
+            )}
+            
+            {medicineInfo && (
               <ScrollArea className="flex-1">
                 <div className="space-y-4">
                   <div>
@@ -265,55 +293,69 @@ const MedicineScanner = () => {
                     <p>{medicineInfo.description}</p>
                   </div>
                   
-                  <div>
-                    <h4 className="font-semibold mb-1">Uses</h4>
-                    <ul className="list-disc pl-5">
-                      {medicineInfo.indications.map((indication, idx) => (
-                        <li key={idx}>{indication}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  {medicineInfo.indications && medicineInfo.indications.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-1">Uses</h4>
+                      <ul className="list-disc pl-5">
+                        {medicineInfo.indications.map((indication, idx) => (
+                          <li key={idx}>{indication}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   
-                  <div>
-                    <h4 className="font-semibold mb-1">Dosage</h4>
-                    <div className="space-y-2">
-                      <div>
-                        <p className="font-medium">Adults:</p>
-                        <p>{medicineInfo.dosage.adult.min} - {medicineInfo.dosage.adult.max} {medicineInfo.dosage.adult.frequency}</p>
-                      </div>
-                      <div>
-                        <p className="font-medium">Children:</p>
-                        <p>{medicineInfo.dosage.pediatric.min} - {medicineInfo.dosage.pediatric.max} {medicineInfo.dosage.pediatric.frequency}</p>
+                  {medicineInfo.dosage && (
+                    <div>
+                      <h4 className="font-semibold mb-1">Dosage</h4>
+                      <div className="space-y-2">
+                        {medicineInfo.dosage.adult && (
+                          <div>
+                            <p className="font-medium">Adults:</p>
+                            <p>{medicineInfo.dosage.adult.min || 'As directed'} - {medicineInfo.dosage.adult.max || 'As directed'} {medicineInfo.dosage.adult.frequency || ''}</p>
+                          </div>
+                        )}
+                        {medicineInfo.dosage.pediatric && (
+                          <div>
+                            <p className="font-medium">Children:</p>
+                            <p>{medicineInfo.dosage.pediatric.min || 'Consult doctor'} - {medicineInfo.dosage.pediatric.max || 'Consult doctor'} {medicineInfo.dosage.pediatric.frequency || ''}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
+                  )}
                   
-                  <div>
-                    <h4 className="font-semibold mb-1">Side Effects</h4>
-                    <ul className="list-disc pl-5">
-                      {medicineInfo.sideEffects.map((effect, idx) => (
-                        <li key={idx}>{effect}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  {medicineInfo.sideEffects && medicineInfo.sideEffects.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-1">Side Effects</h4>
+                      <ul className="list-disc pl-5">
+                        {medicineInfo.sideEffects.map((effect, idx) => (
+                          <li key={idx}>{effect}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   
-                  <div>
-                    <h4 className="font-semibold mb-1">Warnings</h4>
-                    <ul className="list-disc pl-5">
-                      {medicineInfo.warnings.map((warning, idx) => (
-                        <li key={idx}>{warning}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  {medicineInfo.warnings && medicineInfo.warnings.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-1">Warnings</h4>
+                      <ul className="list-disc pl-5">
+                        {medicineInfo.warnings.map((warning, idx) => (
+                          <li key={idx}>{warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   
-                  <div>
-                    <h4 className="font-semibold mb-1">Contraindications</h4>
-                    <ul className="list-disc pl-5">
-                      {medicineInfo.contraindications.map((item, idx) => (
-                        <li key={idx}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
+                  {medicineInfo.contraindications && medicineInfo.contraindications.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold mb-1">Contraindications</h4>
+                      <ul className="list-disc pl-5">
+                        {medicineInfo.contraindications.map((item, idx) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   
                   {medicineInfo.isPrescriptionRequired && (
                     <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-md">
@@ -324,7 +366,7 @@ const MedicineScanner = () => {
                   )}
                 </div>
               </ScrollArea>
-            ) : null}
+            )}
           </div>
         )}
       </div>
