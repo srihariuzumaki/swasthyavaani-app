@@ -1,122 +1,63 @@
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY';
-// Use gemini-pro-vision which is the dedicated vision model for Gemini API
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent';
+// OCR.space API - Free and reliable OCR service
+const OCR_SPACE_API_KEY = process.env.OCR_SPACE_API_KEY || 'helloworld'; // Free tier key
+const OCR_SPACE_API_URL = 'https://api.ocr.space/parse/image';
 
 /**
- * Extract text from image using Gemini Vision API
+ * Extract text from image using OCR.space API (reliable free OCR service)
  * @param {string} imageBase64 - Base64 encoded image data (without data URL prefix)
  * @returns {Promise<string>} Extracted text
  */
 export const extractTextFromImage = async (imageBase64) => {
   try {
-    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
-      throw new Error('Gemini API key is not configured');
-    }
+    console.log('Starting OCR processing using OCR.space API...');
+    console.log(`Image base64 length: ${imageBase64.length}`);
     
-    console.log('Starting OCR processing using Gemini Vision API...');
+    // Create form data for OCR.space API
+    const formData = new URLSearchParams();
+    formData.append('apikey', OCR_SPACE_API_KEY);
+    formData.append('base64Image', `data:image/jpeg;base64,${imageBase64}`);
+    formData.append('OCREngine', '2'); // Engine 2 for better accuracy
+    formData.append('isOverlayRequired', 'false');
+    formData.append('detectOrientation', 'true');
     
-    const prompt = `Extract all text visible in this medicine packaging image. Return ONLY the text content found in the image, nothing else. Focus on medicine names, dosage information, and any other text visible on the packaging.`;
-    
-    // Detect image MIME type from base64 (first bytes indicate format)
-    let mimeType = 'image/jpeg'; // default
-    if (imageBase64.startsWith('iVBORw0KGgo')) {
-      mimeType = 'image/png';
-    } else if (imageBase64.startsWith('/9j/') || imageBase64.startsWith('data:image/jpeg')) {
-      mimeType = 'image/jpeg';
-    } else if (imageBase64.startsWith('R0lGODlh')) {
-      mimeType = 'image/gif';
-    } else if (imageBase64.startsWith('UklGR')) {
-      mimeType = 'image/webp';
-    }
-    
-    console.log(`Detected image type: ${mimeType}, base64 length: ${imageBase64.length}`);
-    
-    // Try different endpoint formats - Gemini 1.5 Flash supports vision
-    const apiUrl = `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`;
-    
-    console.log('Calling Gemini API:', apiUrl.replace(GEMINI_API_KEY, 'HIDDEN'));
-    
-    const requestBody = {
-      contents: [{
-        parts: [
-          { text: prompt },
-          {
-            inline_data: {
-              mime_type: mimeType,
-              data: imageBase64
-            }
-          }
-        ]
-      }]
-    };
-    
-    const response = await fetch(apiUrl, {
+    const response = await fetch(OCR_SPACE_API_URL, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: JSON.stringify(requestBody)
+      body: formData.toString()
     });
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Gemini API error:', response.status, response.statusText);
+      console.error('OCR.space API error:', response.status, response.statusText);
       console.error('Error details:', errorText);
-      
-      // If 404, try with different endpoint formats
-      if (response.status === 404) {
-        console.log('404 error - trying alternative endpoint formats...');
-        
-        // Try alternative endpoints with different API versions and models
-        const alternativeEndpoints = [
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent',
-          'https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent',
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
-          'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent',
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent'
-        ];
-        
-        for (const endpoint of alternativeEndpoints) {
-          try {
-            const altUrl = `${endpoint}?key=${GEMINI_API_KEY}`;
-            console.log(`Trying alternative endpoint: ${endpoint}`);
-            const altResponse = await fetch(altUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(requestBody)
-            });
-            
-            if (altResponse.ok) {
-              const altData = await altResponse.json();
-              if (altData.candidates && altData.candidates[0] && altData.candidates[0].content) {
-                const text = altData.candidates[0].content.parts[0].text;
-                console.log(`Extracted text from image (using ${endpoint}):`, text);
-                return text;
-              }
-            }
-          } catch (altError) {
-            console.error(`Alternative endpoint ${endpoint} failed:`, altError.message);
-          }
-        }
-      }
-      
       throw new Error(`OCR API returned status ${response.status}: ${errorText.substring(0, 200)}`);
     }
     
     const data = await response.json();
     
-    if (data.error) {
-      console.error('Gemini API error in response:', data.error);
-      throw new Error(`Gemini API error: ${data.error.message || 'Unknown error'}`);
+    if (data.ErrorMessage && data.ErrorMessage.length > 0) {
+      console.error('OCR.space API error:', data.ErrorMessage);
+      throw new Error(`OCR API error: ${data.ErrorMessage[0]}`);
     }
     
-    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-      const text = data.candidates[0].content.parts[0].text;
-      console.log('Extracted text from image:', text);
-      return text;
+    if (data.ParsedResults && data.ParsedResults.length > 0) {
+      const extractedText = data.ParsedResults[0].ParsedText;
+      if (extractedText && extractedText.trim().length > 0) {
+        console.log('Extracted text from image:', extractedText);
+        return extractedText.trim();
+      }
+    }
+    
+    // If no parsed text, try to get text from text overlay
+    if (data.TextOverlay && data.TextOverlay.Lines) {
+      const lines = data.TextOverlay.Lines.map(line => line.LineText).filter(text => text);
+      if (lines.length > 0) {
+        const extractedText = lines.join('\n');
+        console.log('Extracted text from overlay:', extractedText);
+        return extractedText.trim();
+      }
     }
     
     throw new Error('No text extracted from image');
