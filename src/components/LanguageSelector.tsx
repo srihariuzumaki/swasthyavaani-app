@@ -30,13 +30,19 @@ const LanguageSelector = ({ open, onOpenChange }: LanguageSelectorProps) => {
 
     setIsChanging(true);
     try {
-      await changeLanguage(langCode as any);
-      toast.success(t("common.languageChanged", { defaultValue: "Language changed successfully!" }));
+      // Close dialog first to prevent UI blocking
       onOpenChange(false);
+      
+      // Change language - this might cause a re-render
+      await changeLanguage(langCode as any);
+      
+      // Wait a bit for the UI to update before showing toast
+      setTimeout(() => {
+        toast.success(t("common.languageChanged", { defaultValue: "Language changed successfully!" }));
+      }, 300);
     } catch (error) {
       console.error("Failed to change language:", error);
       toast.error(t("common.languageChangeError", { defaultValue: "Failed to change language" }));
-    } finally {
       setIsChanging(false);
     }
   };
