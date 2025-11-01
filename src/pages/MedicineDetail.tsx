@@ -105,6 +105,9 @@ const MedicineDetail = () => {
               <div className="bg-muted/30 p-4 rounded-lg">
                 <h3 className="font-semibold mb-2">Description</h3>
                 <p>{medicine.description}</p>
+                <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                  ⚠️ This information is for reference purposes only. Always consult a qualified healthcare professional before making any medical decisions or starting any medication.
+                </p>
               </div>
             )}
             
@@ -147,19 +150,6 @@ const MedicineDetail = () => {
                     <li key={idx} className="text-base">{effect}</li>
                   ))}
                 </ul>
-              </div>
-            )}
-            
-            {medicine.warnings && medicine.warnings.length > 0 && (
-              <div>
-                <h3 className="font-semibold mb-2 text-lg">Warnings</h3>
-                <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
-                  <ul className="list-disc pl-5 space-y-1 text-red-800 dark:text-red-200">
-                    {medicine.warnings.map((warning: string, idx: number) => (
-                      <li key={idx} className="text-base">{warning}</li>
-                    ))}
-                  </ul>
-                </div>
               </div>
             )}
             

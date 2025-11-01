@@ -299,6 +299,9 @@ const MedicineScanner = () => {
                   <div>
                     <h4 className="font-semibold mb-1">Description</h4>
                     <p>{medicineInfo.description}</p>
+                    <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                      ⚠️ This information is for reference purposes only. Always consult a qualified healthcare professional before making any medical decisions or starting any medication.
+                    </p>
                   </div>
                   
                   {medicineInfo.indications && medicineInfo.indications.length > 0 && (
@@ -338,17 +341,6 @@ const MedicineScanner = () => {
                       <ul className="list-disc pl-5">
                         {medicineInfo.sideEffects.map((effect, idx) => (
                           <li key={idx}>{effect}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  
-                  {medicineInfo.warnings && medicineInfo.warnings.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold mb-1">Warnings</h4>
-                      <ul className="list-disc pl-5">
-                        {medicineInfo.warnings.map((warning, idx) => (
-                          <li key={idx}>{warning}</li>
                         ))}
                       </ul>
                     </div>

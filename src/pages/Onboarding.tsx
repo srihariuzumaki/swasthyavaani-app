@@ -54,6 +54,7 @@ const Onboarding = () => {
 
   const handleLoginSuccess = () => {
     localStorage.setItem("hasSeenOnboarding", "true");
+    // Don't set hasAgreedToDisclaimer here - let the Home page show the disclaimer
     navigate("/home");
   };
 

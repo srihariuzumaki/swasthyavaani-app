@@ -7,6 +7,7 @@ import { Search, Camera, Mic, Activity, Pill, Heart, TrendingUp, Bot, LogOut, X,
 import { toast } from "sonner";
 import AIAssistant from "@/components/AIAssistant";
 import ThemeToggle from "@/components/ThemeToggle";
+import DisclaimerModal from "@/components/DisclaimerModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import apiClient, { MedicineSearchResponse, MedicineData } from "@/lib/api";
@@ -28,8 +29,20 @@ const healthTips = [
 const Home = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+
+  // Check if disclaimer should be shown after onboarding
+  useEffect(() => {
+    const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
+    const hasAgreedToDisclaimer = localStorage.getItem("hasAgreedToDisclaimer");
+    
+    // Show disclaimer if user just completed onboarding but hasn't agreed yet
+    if (hasSeenOnboarding === "true" && !hasAgreedToDisclaimer) {
+      setShowDisclaimer(true);
+    }
+  }, []);
 
   const handleVoiceSearch = () => {
     toast.info("Voice search coming soon!");
@@ -335,6 +348,12 @@ const Home = () => {
           <AIAssistant />
         </DialogContent>
       </Dialog>
+
+      {/* Disclaimer Modal */}
+      <DisclaimerModal
+        open={showDisclaimer}
+        onAgree={() => setShowDisclaimer(false)}
+      />
     </div>
   );
 };
