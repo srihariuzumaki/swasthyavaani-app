@@ -1,16 +1,18 @@
 import { Link, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Home, Activity, Bell, User, HelpCircle } from "lucide-react";
 
-const navItems = [
-  { icon: Home, label: "Home", path: "/home" },
-  { icon: Activity, label: "Symptoms", path: "/symptoms" },
-  { icon: Bell, label: "Reminders", path: "/reminders" },
-  { icon: User, label: "Profile", path: "/profile" },
-  { icon: HelpCircle, label: "Help", path: "/help" },
-];
-
 const BottomNav = () => {
+  const { t } = useTranslation();
   const location = useLocation();
+
+  const navItems = [
+    { icon: Home, label: t("navigation.home", { defaultValue: "Home" }), path: "/home" },
+    { icon: Activity, label: t("navigation.symptoms", { defaultValue: "Symptoms" }), path: "/symptoms" },
+    { icon: Bell, label: t("navigation.reminders", { defaultValue: "Reminders" }), path: "/reminders" },
+    { icon: User, label: t("navigation.profile", { defaultValue: "Profile" }), path: "/profile" },
+    { icon: HelpCircle, label: t("navigation.help", { defaultValue: "Help" }), path: "/help" },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-50">

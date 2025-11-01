@@ -1,18 +1,28 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { X, ChevronRight, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
-const commonSymptoms = [
-  "Headache", "Fever", "Cough", "Cold", "Body Pain", 
-  "Nausea", "Dizziness", "Fatigue", "Sore Throat", "Chest Pain"
-];
-
 const Symptoms = () => {
+  const { t } = useTranslation();
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
+
+  const commonSymptoms = [
+    t("symptoms.headache", { defaultValue: "Headache" }),
+    t("symptoms.fever", { defaultValue: "Fever" }),
+    t("symptoms.cough", { defaultValue: "Cough" }),
+    t("symptoms.cold", { defaultValue: "Cold" }),
+    t("symptoms.bodyPain", { defaultValue: "Body Pain" }),
+    t("symptoms.nausea", { defaultValue: "Nausea" }),
+    t("symptoms.dizziness", { defaultValue: "Dizziness" }),
+    t("symptoms.fatigue", { defaultValue: "Fatigue" }),
+    t("symptoms.soreThroat", { defaultValue: "Sore Throat" }),
+    t("symptoms.chestPain", { defaultValue: "Chest Pain" }),
+  ];
 
   const toggleSymptom = (symptom: string) => {
     setSelectedSymptoms(prev =>
@@ -28,7 +38,7 @@ const Symptoms = () => {
 
   const handleCheck = () => {
     if (selectedSymptoms.length === 0) {
-      toast.error("Please select at least one symptom");
+      toast.error(t("symptoms.selectAtLeastOne", { defaultValue: "Please select at least one symptom" }));
       return;
     }
     setShowResults(true);
@@ -43,8 +53,8 @@ const Symptoms = () => {
     <div className="min-h-screen bg-gradient-to-br from-background to-muted pb-20">
       {/* Header */}
       <div className="bg-gradient-to-br from-secondary via-primary to-accent p-6 pt-8 rounded-b-3xl shadow-[var(--shadow-medical)]">
-        <h1 className="text-2xl font-bold text-white mb-2">Symptom Checker</h1>
-        <p className="text-white/90">Select your symptoms to get medicine suggestions</p>
+        <h1 className="text-2xl font-bold text-white mb-2">{t("symptoms.title", { defaultValue: "Symptom Checker" })}</h1>
+        <p className="text-white/90">{t("symptoms.subtitle", { defaultValue: "Select your symptoms to get medicine suggestions" })}</p>
       </div>
 
       <div className="px-4 mt-6">
@@ -52,14 +62,14 @@ const Symptoms = () => {
         {selectedSymptoms.length > 0 && (
           <Card className="p-4 mb-6 animate-fade-in">
             <div className="flex items-center justify-between mb-3">
-              <span className="font-semibold text-sm">Selected Symptoms</span>
+              <span className="font-semibold text-sm">{t("symptoms.selectedSymptoms", { defaultValue: "Selected Symptoms" })}</span>
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={handleReset}
                 className="text-xs"
               >
-                Clear All
+                {t("symptoms.clearAll", { defaultValue: "Clear All" })}
               </Button>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -84,7 +94,7 @@ const Symptoms = () => {
         {/* Symptom Selection */}
         {!showResults && (
           <>
-            <h2 className="text-lg font-semibold mb-4">Common Symptoms</h2>
+            <h2 className="text-lg font-semibold mb-4">{t("symptoms.commonSymptoms", { defaultValue: "Common Symptoms" })}</h2>
             <div className="grid grid-cols-2 gap-3 mb-6">
               {commonSymptoms.map((symptom) => (
                 <Button
@@ -108,7 +118,7 @@ const Symptoms = () => {
               disabled={selectedSymptoms.length === 0}
               className="w-full bg-gradient-to-r from-accent to-primary hover:opacity-90 transition-opacity shadow-[var(--shadow-medical)]"
             >
-              Check Symptoms
+              {t("symptoms.checkSymptoms", { defaultValue: "Check Symptoms" })}
               <ChevronRight className="ml-2 w-5 h-5" />
             </Button>
           </>
@@ -120,11 +130,11 @@ const Symptoms = () => {
             <div className="flex items-center gap-2 mb-4 p-3 bg-accent/10 rounded-lg">
               <AlertCircle className="w-5 h-5 text-accent" />
               <p className="text-sm text-muted-foreground">
-                This is for information only. Please consult a doctor for proper diagnosis.
+                {t("symptoms.disclaimer", { defaultValue: "This is for information only. Please consult a doctor for proper diagnosis." })}
               </p>
             </div>
 
-            <h2 className="text-lg font-semibold mb-4">Suggested Medicines</h2>
+            <h2 className="text-lg font-semibold mb-4">{t("symptoms.suggestedMedicines", { defaultValue: "Suggested Medicines" })}</h2>
             
             <div className="space-y-3 mb-6">
               {[
@@ -148,7 +158,7 @@ const Symptoms = () => {
               size="lg"
               className="w-full"
             >
-              Check Different Symptoms
+              {t("symptoms.checkDifferentSymptoms", { defaultValue: "Check Different Symptoms" })}
             </Button>
           </div>
         )}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ interface Reminder {
 }
 
 const Reminders = () => {
+  const { t } = useTranslation();
   const [reminders, setReminders] = useState<Reminder[]>([
     { id: "1", medicine: "Paracetamol 500mg", time: "09:00 AM", frequency: "Daily", completed: false },
     { id: "2", medicine: "Vitamin D", time: "01:00 PM", frequency: "Daily", completed: true },
@@ -28,16 +30,16 @@ const Reminders = () => {
           : reminder
       )
     );
-    toast.success("Reminder updated");
+    toast.success(t("reminders.reminderUpdated", { defaultValue: "Reminder updated" }));
   };
 
   const deleteReminder = (id: string) => {
     setReminders(prev => prev.filter(reminder => reminder.id !== id));
-    toast.success("Reminder deleted");
+    toast.success(t("reminders.reminderDeleted", { defaultValue: "Reminder deleted" }));
   };
 
   const addReminder = () => {
-    toast.info("Add reminder feature coming soon!");
+    toast.info(t("reminders.addReminderComingSoon", { defaultValue: "Add reminder feature coming soon!" }));
   };
 
   const activeReminders = reminders.filter(r => !r.completed);
@@ -47,8 +49,8 @@ const Reminders = () => {
     <div className="min-h-screen bg-gradient-to-br from-background to-muted pb-20">
       {/* Header */}
       <div className="bg-gradient-to-br from-accent via-primary to-secondary p-6 pt-8 rounded-b-3xl shadow-[var(--shadow-medical)]">
-        <h1 className="text-2xl font-bold text-white mb-2">Medication Reminders</h1>
-        <p className="text-white/90">Never miss your dose again</p>
+        <h1 className="text-2xl font-bold text-white mb-2">{t("reminders.title", { defaultValue: "Medication Reminders" })}</h1>
+        <p className="text-white/90">{t("reminders.subtitle", { defaultValue: "Never miss your dose again" })}</p>
       </div>
 
       <div className="px-4 mt-6">
@@ -59,19 +61,19 @@ const Reminders = () => {
           className="w-full mb-6 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity shadow-[var(--shadow-medical)]"
         >
           <Plus className="w-5 h-5 mr-2" />
-          Add New Reminder
+          {t("reminders.addNewReminder", { defaultValue: "Add New Reminder" })}
         </Button>
 
         {/* Active Reminders */}
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5 text-primary" />
-            Today's Reminders
+            {t("reminders.todaysReminders", { defaultValue: "Today's Reminders" })}
           </h2>
           
           {activeReminders.length === 0 ? (
             <Card className="p-8 text-center">
-              <p className="text-muted-foreground">No active reminders</p>
+              <p className="text-muted-foreground">{t("reminders.noActiveReminders", { defaultValue: "No active reminders" })}</p>
             </Card>
           ) : (
             <div className="space-y-3">
@@ -124,7 +126,7 @@ const Reminders = () => {
           <div>
             <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Check className="w-5 h-5 text-accent" />
-              Completed Today
+              {t("reminders.completedToday", { defaultValue: "Completed Today" })}
             </h2>
             
             <div className="space-y-3">

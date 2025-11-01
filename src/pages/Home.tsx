@@ -14,18 +14,18 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import apiClient, { MedicineSearchResponse, MedicineData, ApiResponse } from "@/lib/api";
 
-const quickActions = [
-  { icon: Activity, label: "Symptom Checker", color: "from-primary to-secondary" },
-  { icon: Pill, label: "My Medicines", color: "from-secondary to-accent" },
-  { icon: Heart, label: "Health Tips", color: "from-accent to-primary" },
-  { icon: TrendingUp, label: "Track Health", color: "from-primary to-accent" },
+const QuickActions = ({ t }: { t: any }) => [
+  { icon: Activity, label: t("home.symptomChecker", { defaultValue: "Symptom Checker" }), color: "from-primary to-secondary" },
+  { icon: Pill, label: t("home.myMedicines", { defaultValue: "My Medicines" }), color: "from-secondary to-accent" },
+  { icon: Heart, label: t("home.healthTips", { defaultValue: "Health Tips" }), color: "from-accent to-primary" },
+  { icon: TrendingUp, label: t("home.trackHealth", { defaultValue: "Track Health" }), color: "from-primary to-accent" },
 ];
 
-const healthTips = [
-  "Drink 8 glasses of water daily",
-  "Take medicines after meals unless prescribed otherwise",
-  "Exercise for 30 minutes daily",
-  "Get 7-8 hours of sleep",
+const HealthTips = ({ t }: { t: any }) => [
+  t("home.healthTip1", { defaultValue: "Drink 8 glasses of water daily" }),
+  t("home.healthTip2", { defaultValue: "Take medicines after meals unless prescribed otherwise" }),
+  t("home.healthTip3", { defaultValue: "Exercise for 30 minutes daily" }),
+  t("home.healthTip4", { defaultValue: "Get 7-8 hours of sleep" }),
 ];
 
 const Home = () => {
@@ -315,7 +315,7 @@ const Home = () => {
       <div className="px-4 mt-6">
         <h2 className="text-lg font-semibold mb-4">{t("home.quickActions", { defaultValue: "Quick Actions" })}</h2>
         <div className="grid grid-cols-2 gap-3">
-          {quickActions.map((action, index) => {
+          {QuickActions({ t }).map((action, index) => {
             const Icon = action.icon;
             return (
               <Card
@@ -337,7 +337,7 @@ const Home = () => {
       <div className="px-4 mt-6">
         <h2 className="text-lg font-semibold mb-4">{t("home.healthTips", { defaultValue: "Today's Health Tips" })}</h2>
         <div className="space-y-3">
-          {healthTips.map((tip, index) => (
+          {HealthTips({ t }).map((tip, index) => (
             <Card key={index} className="p-4 flex items-center gap-3 animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
               <div className="w-2 h-2 rounded-full bg-accent" />
               <p className="text-sm text-muted-foreground">{tip}</p>
