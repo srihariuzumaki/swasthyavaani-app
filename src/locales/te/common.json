@@ -1,0 +1,67 @@
+{
+  "app": {
+    "name": "స్వస్థ్య వాణి",
+    "tagline": "మీ ఆరోగ్య కూడు"
+  },
+  "common": {
+    "search": "మందులు శోధించండి...",
+    "searchResults": "శోధన ఫలితాలు",
+    "noResults": "మందులు ఏవీ కనుగొనబడలేదు",
+    "loading": "లోడ్ అవుతోంది...",
+    "error": "ఒక పొరపాటు సంభవించింది",
+    "save": "సేవ్ చేయండి",
+    "cancel": "రద్దు చేయండి",
+    "delete": "తొలగించండి",
+    "edit": "సవరించండి",
+    "close": "మూసివేయండి",
+    "back": "వెనక్కి",
+    "next": "తరువాత",
+    "done": "పూర్తయింది"
+  },
+  "home": {
+    "greeting": "నమస్కారం, {{name}}!",
+    "welcome": "ఈరోజు మేము మీకు ఎలా సహాయం చేయగలము?",
+    "quickActions": "త్వరిత చర్యలు",
+    "healthTips": "నేటి ఆరోగ్య చిట్కాలు",
+    "aiAssistant": "AI అసిస్టెంట్ తో మాట్లాడండి",
+    "aiAssistantDesc": "మందులు, లక్షణాలు లేదా ఆరోగ్య సలహా గురించి మీ భాషలో అడగండి"
+  },
+  "medicine": {
+    "details": "మందు వివరాలు",
+    "name": "పేరు",
+    "genericName": "సాధారణ పేరు",
+    "category": "వర్గం",
+    "description": "వివరణ",
+    "uses": "ఉపయోగాలు",
+    "dosage": "మోతాదు",
+    "adults": "పెద్దలు",
+    "children": "పిల్లలు",
+    "sideEffects": "పార్శ్వ ప్రభావాలు",
+    "contraindications": "విరుద్ధ స్థితులు",
+    "warnings": "హెచ్చరికలు",
+    "precautions": "జాగ్రత్తలు",
+    "storage": "స్టోరేజ్ సూచనలు",
+    "prescriptionRequired": "ప్రిస్క్రిప్షన్ అవసరం"
+  },
+  "profile": {
+    "title": "ప్రొఫైల్",
+    "preferences": "ప్రాధాన్యతలు",
+    "notifications": "నోటిఫికేషన్లు",
+    "medicationReminders": "మందు జ్ఞాపకాలు",
+    "healthTips": "ఆరోగ్య చిట్కాలు",
+    "language": "భాష",
+    "changeLanguage": "భాష మార్చండి",
+    "supports": "మద్దతు: హిందీ, తమిళం, తెలుగు, బెంగాలీ, మరాఠీ, గుజరాతీ, కన్నడ"
+  },
+  "languages": {
+    "en": "English",
+    "hi": "हिंदी (Hindi)",
+    "ta": "தமிழ் (Tamil)",
+    "te": "తెలుగు (Telugu)",
+    "bn": "বাংলা (Bengali)",
+    "mr": "मराठी (Marathi)",
+    "gu": "ગુજરાતી (Gujarati)",
+    "kn": "ಕನ್ನಡ (Kannada)"
+  }
+}
+

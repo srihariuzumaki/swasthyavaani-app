@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft, Pill, AlertCircle } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import apiClient from "@/lib/api";
+import { useLanguage } from "@/contexts/LanguageContext";
 import BottomNav from "@/components/BottomNav";
 
 const MedicineDetail = () => {
+  const { t } = useTranslation();
+  const { language } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [medicine, setMedicine] = useState<any>(null);
@@ -18,7 +22,7 @@ const MedicineDetail = () => {
     const fetchMedicine = async () => {
       try {
         setLoading(true);
-        const response = await apiClient.getMedicine(id!);
+        const response = await apiClient.getMedicine(id!, language);
         if (response.status === 'success' && response.data?.medicine) {
           setMedicine(response.data.medicine);
         } else {
@@ -35,13 +39,13 @@ const MedicineDetail = () => {
     if (id) {
       fetchMedicine();
     }
-  }, [id]);
+  }, [id, language]);
 
   if (loading) {
     return (
       <div className="container max-w-md mx-auto pb-20 pt-4 flex flex-col items-center justify-center min-h-[70vh]">
         <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground">Loading medicine details...</p>
+        <p className="text-muted-foreground">{t("common.loading", { defaultValue: "Loading..." })}</p>
         <BottomNav />
       </div>
     );
@@ -76,9 +80,9 @@ const MedicineDetail = () => {
           <div>
             <h3 className="font-semibold text-white flex items-center gap-2">
               <Pill className="w-5 h-5" />
-              Medicine Details
+              {t("medicine.details", { defaultValue: "Medicine Details" })}
             </h3>
-            <p className="text-sm text-white/90">Detailed information about this medicine</p>
+            <p className="text-sm text-white/90">{t("medicine.detailedInfo", { defaultValue: "Detailed information about this medicine" })}</p>
           </div>
         </div>
 
@@ -95,7 +99,7 @@ const MedicineDetail = () => {
                 </span>
                 {medicine.isPrescriptionRequired && (
                   <span className="text-sm bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded-full">
-                    Prescription Required
+                    {t("medicine.prescriptionRequired", { defaultValue: "Prescription Required" })}
                   </span>
                 )}
               </div>
@@ -103,7 +107,7 @@ const MedicineDetail = () => {
             
             {medicine.description && (
               <div className="bg-muted/30 p-4 rounded-lg">
-                <h3 className="font-semibold mb-2">Description</h3>
+                <h3 className="font-semibold mb-2">{t("medicine.description", { defaultValue: "Description" })}</h3>
                 <p>{medicine.description}</p>
                 <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
                   ⚠️ This information is for reference purposes only. Always consult a qualified healthcare professional before making any medical decisions or starting any medication.
@@ -113,7 +117,7 @@ const MedicineDetail = () => {
             
             {medicine.indications && medicine.indications.length > 0 && (
               <div>
-                <h3 className="font-semibold mb-2 text-lg">Uses</h3>
+                <h3 className="font-semibold mb-2 text-lg">{t("medicine.uses", { defaultValue: "Uses" })}</h3>
                 <ul className="list-disc pl-5 space-y-1">
                   {medicine.indications.map((indication: string, idx: number) => (
                     <li key={idx} className="text-base">{indication}</li>
@@ -124,17 +128,17 @@ const MedicineDetail = () => {
             
             {medicine.dosage && (
               <div>
-                <h3 className="font-semibold mb-2 text-lg">Dosage</h3>
+                <h3 className="font-semibold mb-2 text-lg">{t("medicine.dosage", { defaultValue: "Dosage" })}</h3>
                 <div className="space-y-3">
                   {medicine.dosage.adult && (
                     <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md">
-                      <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">Adults</p>
+                      <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">{t("medicine.adults", { defaultValue: "Adults" })}</p>
                       <p>{medicine.dosage.adult.min} - {medicine.dosage.adult.max} {medicine.dosage.adult.frequency}</p>
                     </div>
                   )}
                   {medicine.dosage.pediatric && (
                     <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-md">
-                      <p className="font-medium text-green-800 dark:text-green-200 mb-1">Children</p>
+                      <p className="font-medium text-green-800 dark:text-green-200 mb-1">{t("medicine.children", { defaultValue: "Children" })}</p>
                       <p>{medicine.dosage.pediatric.min} - {medicine.dosage.pediatric.max} {medicine.dosage.pediatric.frequency}</p>
                     </div>
                   )}
@@ -144,7 +148,7 @@ const MedicineDetail = () => {
             
             {medicine.sideEffects && medicine.sideEffects.length > 0 && (
               <div>
-                <h3 className="font-semibold mb-2 text-lg">Side Effects</h3>
+                <h3 className="font-semibold mb-2 text-lg">{t("medicine.sideEffects", { defaultValue: "Side Effects" })}</h3>
                 <ul className="list-disc pl-5 space-y-1">
                   {medicine.sideEffects.map((effect: string, idx: number) => (
                     <li key={idx} className="text-base">{effect}</li>
@@ -155,7 +159,7 @@ const MedicineDetail = () => {
             
             {medicine.contraindications && medicine.contraindications.length > 0 && (
               <div>
-                <h3 className="font-semibold mb-2 text-lg">Contraindications</h3>
+                <h3 className="font-semibold mb-2 text-lg">{t("medicine.contraindications", { defaultValue: "Contraindications" })}</h3>
                 <ul className="list-disc pl-5 space-y-1">
                   {medicine.contraindications.map((item: string, idx: number) => (
                     <li key={idx} className="text-base">{item}</li>

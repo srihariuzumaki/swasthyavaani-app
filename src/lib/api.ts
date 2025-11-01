@@ -296,19 +296,22 @@ class ApiClient {
         category?: string;
         page?: number;
         limit?: number;
+        lang?: string;
     }) {
         const queryParams = new URLSearchParams();
         if (params?.search) queryParams.append('search', params.search);
         if (params?.category) queryParams.append('category', params.category);
         if (params?.page) queryParams.append('page', params.page.toString());
         if (params?.limit) queryParams.append('limit', params.limit.toString());
+        if (params?.lang) queryParams.append('lang', params.lang);
 
         const query = queryParams.toString();
         return this.request<ApiResponse<MedicineSearchResponse>>(`/medicines${query ? `?${query}` : ''}`);
     }
 
-    async getMedicine(id: string) {
-        return this.request<ApiResponse<{ medicine: MedicineData }>>(`/medicines/${id}`);
+    async getMedicine(id: string, lang?: string) {
+        const query = lang ? `?lang=${lang}` : '';
+        return this.request<ApiResponse<{ medicine: MedicineData }>>(`/medicines/${id}${query}`);
     }
 
     async getMedicineCategories() {

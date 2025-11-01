@@ -1,0 +1,67 @@
+{
+  "app": {
+    "name": "સ્વસ્થ્ય વાણી",
+    "tagline": "તમારો આરોગ્ય સાથી"
+  },
+  "common": {
+    "search": "દવાઓ શોધો...",
+    "searchResults": "શોધ પરિણામો",
+    "noResults": "કોઈ દવા મળી નથી",
+    "loading": "લોડ થઈ રહ્યું છે...",
+    "error": "એક ભૂલ આવી",
+    "save": "સેવ કરો",
+    "cancel": "રદ કરો",
+    "delete": "કાઢી નાખો",
+    "edit": "સંપાદન કરો",
+    "close": "બંધ કરો",
+    "back": "પાછળ",
+    "next": "આગળ",
+    "done": "પૂર્ણ"
+  },
+  "home": {
+    "greeting": "નમસ્તે, {{name}}!",
+    "welcome": "આજે અમે તમારી કેવી રીતે મદદ કરી શકીએ?",
+    "quickActions": "ઝડપી ક્રિયાઓ",
+    "healthTips": "આજના આરોગ્ય ટિપ્સ",
+    "aiAssistant": "AI સહાયક સાથે વાત કરો",
+    "aiAssistantDesc": "દવાઓ, લક્ષણો અથવા આરોગ્ય સલાહ વિશે તમારી ભાષામાં પૂછો"
+  },
+  "medicine": {
+    "details": "દવા વિગતો",
+    "name": "નામ",
+    "genericName": "જનરિક નામ",
+    "category": "શ્રેણી",
+    "description": "વર્ણન",
+    "uses": "ઉપયોગ",
+    "dosage": "ડોઝ",
+    "adults": "પુખ્ત વ્યક્તિઓ",
+    "children": "બાળકો",
+    "sideEffects": "બાજુની અસરો",
+    "contraindications": "વિરોધાભાસ",
+    "warnings": "ચેતવણી",
+    "precautions": "સાવચેતી",
+    "storage": "સ્ટોરેજ સૂચનો",
+    "prescriptionRequired": "પ્રિસ્ક્રિપ્શન જરૂરી"
+  },
+  "profile": {
+    "title": "પ્રોફાઇલ",
+    "preferences": "પ્રાધાન્યતાઓ",
+    "notifications": "સૂચનાઓ",
+    "medicationReminders": "દવા રીમાઇન્ડર",
+    "healthTips": "આરોગ્ય ટિપ્સ",
+    "language": "ભાષા",
+    "changeLanguage": "ભાષા બદલો",
+    "supports": "સમર્થન: હિંદી, તમિલ, તેલુગુ, બંગાળી, મરાઠી, ગુજરાતી, કન્નડ"
+  },
+  "languages": {
+    "en": "English",
+    "hi": "हिंदी (Hindi)",
+    "ta": "தமிழ் (Tamil)",
+    "te": "తెలుగు (Telugu)",
+    "bn": "বাংলা (Bengali)",
+    "mr": "मराठी (Marathi)",
+    "gu": "ગુજરાતી (Gujarati)",
+    "kn": "ಕನ್ನಡ (Kannada)"
+  }
+}
+

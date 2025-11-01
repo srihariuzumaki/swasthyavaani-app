@@ -4,6 +4,7 @@ import Medicine from '../models/Medicine.js';
 import { authenticate } from '../middleware/auth.js';
 import { validateRequest } from '../utils/validation.js';
 import { scanMedicine, searchMedicineByName, getSuggestions } from '../controllers/medicineController.js';
+import { getTranslatedMedicine, getTranslatedMedicines } from '../utils/medicineTranslations.js';
 
 const router = express.Router();
 
@@ -33,7 +34,7 @@ router.get('/', [
         .withMessage('Limit must be between 1 and 100'),
 ], validateRequest, async (req, res, next) => {
     try {
-        const { search, category, page = 1, limit = 20 } = req.query;
+        const { search, category, page = 1, limit = 20, lang = 'en' } = req.query;
 
         // If searching, try comprehensive API first
         if (search) {
@@ -67,10 +68,11 @@ router.get('/', [
                     });
                 }
                 
+                const translatedMedicine = getTranslatedMedicine(medicine, lang);
                 return res.json({
                     status: 'success',
                     data: {
-                        medicines: [medicine],
+                        medicines: [translatedMedicine],
                         pagination: {
                             currentPage: 1,
                             totalPages: 1,
@@ -104,11 +106,12 @@ router.get('/', [
             .limit(parseInt(limit));
 
         const total = await Medicine.countDocuments(query);
+        const translatedMedicines = getTranslatedMedicines(medicines, lang);
 
         res.json({
             status: 'success',
             data: {
-                medicines,
+                medicines: translatedMedicines,
                 pagination: {
                     currentPage: parseInt(page),
                     totalPages: Math.ceil(total / limit),
@@ -143,6 +146,7 @@ router.get('/search/:medicineName', searchMedicineByName);
 // @access  Public
 router.get('/:id', async (req, res, next) => {
     try {
+        const { lang = 'en' } = req.query;
         const medicine = await Medicine.findById(req.params.id);
 
         if (!medicine || !medicine.isActive) {
@@ -152,9 +156,10 @@ router.get('/:id', async (req, res, next) => {
             });
         }
 
+        const translatedMedicine = getTranslatedMedicine(medicine, lang);
         res.json({
             status: 'success',
-            data: { medicine },
+            data: { medicine: translatedMedicine },
         });
     } catch (error) {
         next(error);

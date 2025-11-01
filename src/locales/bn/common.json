@@ -1,0 +1,67 @@
+{
+  "app": {
+    "name": "স্বাস্থ্য বাণী",
+    "tagline": "আপনার স্বাস্থ্য সঙ্গী"
+  },
+  "common": {
+    "search": "ওষুধ খুঁজুন...",
+    "searchResults": "খোঁজার ফলাফল",
+    "noResults": "কোনও ওষুধ পাওয়া যায়নি",
+    "loading": "লোড হচ্ছে...",
+    "error": "একটি ত্রুটি হয়েছে",
+    "save": "সংরক্ষণ করুন",
+    "cancel": "বাতিল করুন",
+    "delete": "মুছুন",
+    "edit": "সম্পাদনা করুন",
+    "close": "বন্ধ করুন",
+    "back": "পিছনে",
+    "next": "পরবর্তী",
+    "done": "সম্পন্ন"
+  },
+  "home": {
+    "greeting": "নমস্কার, {{name}}!",
+    "welcome": "আজ আমরা আপনাকে কিভাবে সাহায্য করতে পারি?",
+    "quickActions": "দ্রুত কাজ",
+    "healthTips": "আজকের স্বাস্থ্য টিপস",
+    "aiAssistant": "AI সহায়কের সাথে কথা বলুন",
+    "aiAssistantDesc": "ওষুধ, লক্ষণ বা স্বাস্থ্য পরামর্শ সম্পর্কে আপনার ভাষায় জিজ্ঞাসা করুন"
+  },
+  "medicine": {
+    "details": "ওষুধের বিবরণ",
+    "name": "নাম",
+    "genericName": "জেনেরিক নাম",
+    "category": "বিভাগ",
+    "description": "বিবরণ",
+    "uses": "ব্যবহার",
+    "dosage": "মাত্রা",
+    "adults": "প্রাপ্তবয়স্ক",
+    "children": "শিশু",
+    "sideEffects": "পার্শ্ব প্রতিক্রিয়া",
+    "contraindications": "বিরোধিতা",
+    "warnings": "সতর্কতা",
+    "precautions": "সতর্কতা",
+    "storage": "সংরক্ষণের নির্দেশনা",
+    "prescriptionRequired": "প্রেসক্রিপশন প্রয়োজন"
+  },
+  "profile": {
+    "title": "প্রোফাইল",
+    "preferences": "পছন্দসমূহ",
+    "notifications": "বিজ্ঞপ্তি",
+    "medicationReminders": "ওষুধের অনুস্মারক",
+    "healthTips": "স্বাস্থ্য টিপস",
+    "language": "ভাষা",
+    "changeLanguage": "ভাষা পরিবর্তন করুন",
+    "supports": "সমর্থিত: হিন্দি, তামিল, তেলেগু, বাংলা, মারাঠি, গুজরাটি, কন্নড়"
+  },
+  "languages": {
+    "en": "English",
+    "hi": "हिंदी (Hindi)",
+    "ta": "தமிழ் (Tamil)",
+    "te": "తెలుగు (Telugu)",
+    "bn": "বাংলা (Bengali)",
+    "mr": "मराठी (Marathi)",
+    "gu": "ગુજરાતી (Gujarati)",
+    "kn": "ಕನ್ನಡ (Kannada)"
+  }
+}
+

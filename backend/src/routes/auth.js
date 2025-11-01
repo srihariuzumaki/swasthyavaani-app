@@ -59,7 +59,22 @@ const sendOTPviaSMS = async (phone, otpCode) => {
             moreInfo: error.moreInfo,
             status: error.status
         });
-        throw new Error(`Failed to send SMS: ${error.message}`);
+        
+        // Provide helpful error messages for common Twilio trial account issues
+        let errorMessage = `Failed to send SMS: ${error.message}`;
+        
+        if (error.code === 21610) {
+            // Unverified number error (Twilio trial account)
+            errorMessage = 'Unable to send SMS: This number is not verified. Please upgrade your Twilio account to send SMS to any number. See TWILIO_UPGRADE_GUIDE.md for instructions.';
+        } else if (error.code === 21211) {
+            // Invalid phone number
+            errorMessage = 'Invalid phone number format. Please use E.164 format (e.g., +1234567890)';
+        } else if (error.code === 21408) {
+            // Permission denied
+            errorMessage = 'Permission to send SMS not enabled. Please verify your phone number in Twilio Console or upgrade your account.';
+        }
+        
+        throw new Error(errorMessage);
     }
 };
 
@@ -85,18 +100,40 @@ router.post('/send-otp', [
 
         // Send OTP via SMS using Twilio
         let smsSent = true;
+        let smsError = null;
         try {
             await sendOTPviaSMS(phone, otp.code);
             console.log(`✅ SMS sent successfully to ${phone}`);
         } catch (error) {
             console.error('❌ Failed to send SMS:', error);
             smsSent = false;
+            smsError = error.message;
+            
+            // If it's a Twilio trial account error, provide helpful message
+            if (error.message && error.message.includes('not verified')) {
+                // In development, we'll still return the OTP but warn about the SMS issue
+                if (process.env.NODE_ENV === 'development') {
+                    console.warn('⚠️  SMS failed due to unverified number. In production, upgrade Twilio account.');
+                } else {
+                    // In production, fail if SMS can't be sent
+                    return res.status(502).json({
+                        status: 'error',
+                        message: 'Unable to send OTP via SMS. Your Twilio account needs to be upgraded to send SMS to any number. Please contact support or upgrade your account.',
+                        error: 'Twilio trial account restriction - number not verified',
+                        data: {
+                            phone,
+                            // Include OTP in dev mode only
+                            otp: process.env.NODE_ENV === 'development' ? otp.code : undefined
+                        }
+                    });
+                }
+            }
         }
 
         if (!smsSent && process.env.NODE_ENV !== 'development') {
             return res.status(502).json({
                 status: 'error',
-                message: 'Failed to send OTP via SMS. Please try again.',
+                message: smsError || 'Failed to send OTP via SMS. Please try again.',
             });
         }
 
@@ -217,17 +254,39 @@ router.post('/resend-otp', [
 
         // Send OTP via SMS using Twilio
         let smsSent = true;
+        let smsError = null;
         try {
             await sendOTPviaSMS(phone, otp.code);
         } catch (error) {
             console.error('Failed to send SMS:', error);
             smsSent = false;
+            smsError = error.message;
+            
+            // If it's a Twilio trial account error, provide helpful message
+            if (error.message && error.message.includes('not verified')) {
+                // In development, we'll still return the OTP but warn about the SMS issue
+                if (process.env.NODE_ENV === 'development') {
+                    console.warn('⚠️  SMS failed due to unverified number. In production, upgrade Twilio account.');
+                } else {
+                    // In production, fail if SMS can't be sent
+                    return res.status(502).json({
+                        status: 'error',
+                        message: 'Unable to send OTP via SMS. Your Twilio account needs to be upgraded to send SMS to any number. Please contact support or upgrade your account.',
+                        error: 'Twilio trial account restriction - number not verified',
+                        data: {
+                            phone,
+                            // Include OTP in dev mode only
+                            otp: process.env.NODE_ENV === 'development' ? otp.code : undefined
+                        }
+                    });
+                }
+            }
         }
 
         if (!smsSent && process.env.NODE_ENV !== 'development') {
             return res.status(502).json({
                 status: 'error',
-                message: 'Failed to send OTP via SMS. Please try again.',
+                message: smsError || 'Failed to send OTP via SMS. Please try again.',
             });
         }
 

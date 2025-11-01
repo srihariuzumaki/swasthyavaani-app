@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -9,8 +10,9 @@ import AIAssistant from "@/components/AIAssistant";
 import ThemeToggle from "@/components/ThemeToggle";
 import DisclaimerModal from "@/components/DisclaimerModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
-import apiClient, { MedicineSearchResponse, MedicineData } from "@/lib/api";
+import apiClient, { MedicineSearchResponse, MedicineData, ApiResponse } from "@/lib/api";
 
 const quickActions = [
   { icon: Activity, label: "Symptom Checker", color: "from-primary to-secondary" },
@@ -27,6 +29,8 @@ const healthTips = [
 ];
 
 const Home = () => {
+  const { t } = useTranslation();
+  const { language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
@@ -101,7 +105,10 @@ const Home = () => {
     setShowResults(true);
     
     try {
-      const response = await apiClient.get<MedicineSearchResponse>(`/medicines?search=${encodeURIComponent(searchQuery.trim())}`);
+      const response = await apiClient.searchMedicines({ 
+        search: searchQuery.trim(),
+        lang: language
+      }) as ApiResponse<MedicineSearchResponse>;
       
       if (response.status === 'success') {
         setSearchResults(response.data?.medicines || []);
@@ -141,8 +148,8 @@ const Home = () => {
       <div className="bg-gradient-to-br from-primary via-secondary to-accent p-6 pt-8 rounded-b-3xl shadow-[var(--shadow-medical)]">
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-2">Hello, {user?.name || 'User'}!</h1>
-            <p className="text-white/90">How can we help you today?</p>
+            <h1 className="text-2xl font-bold text-white mb-2">{t("home.greeting", { name: user?.name || 'User', defaultValue: "Hello, {{name}}!" })}</h1>
+            <p className="text-white/90">{t("home.welcome", { defaultValue: "How can we help you today?" })}</p>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -160,7 +167,7 @@ const Home = () => {
         {/* Search bar */}
         <div className="mt-6 relative">
           <Input
-            placeholder="Search medicines..."
+            placeholder={t("common.search", { defaultValue: "Search medicines..." })}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -225,7 +232,7 @@ const Home = () => {
           {showResults && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-30 max-h-[400px] overflow-auto">
               <div className="flex justify-between items-center p-3 border-b">
-                <h3 className="font-medium">Search Results</h3>
+                <h3 className="font-medium">{t("common.searchResults", { defaultValue: "Search Results" })}</h3>
                 <Button 
                   size="icon" 
                   variant="ghost" 
@@ -275,7 +282,7 @@ const Home = () => {
                 </div>
               ) : (
                 <div className="p-6 text-center text-muted-foreground">
-                  No medicines found for "{searchQuery}"
+                  {t("common.noResults", { defaultValue: `No medicines found for "${searchQuery}"` })}
                 </div>
               )}
             </div>
@@ -294,9 +301,9 @@ const Home = () => {
               <Bot className="w-8 h-8 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-lg mb-1">Talk to AI Assistant</h3>
+              <h3 className="font-semibold text-lg mb-1">{t("home.aiAssistant", { defaultValue: "Talk to AI Assistant" })}</h3>
               <p className="text-sm text-muted-foreground">
-                Ask about medicines, symptoms, or health advice in your language
+                {t("home.aiAssistantDesc", { defaultValue: "Ask about medicines, symptoms, or health advice in your language" })}
               </p>
             </div>
             <Mic className="w-6 h-6 text-primary" />
@@ -306,7 +313,7 @@ const Home = () => {
 
       {/* Quick Actions */}
       <div className="px-4 mt-6">
-        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+        <h2 className="text-lg font-semibold mb-4">{t("home.quickActions", { defaultValue: "Quick Actions" })}</h2>
         <div className="grid grid-cols-2 gap-3">
           {quickActions.map((action, index) => {
             const Icon = action.icon;
@@ -328,7 +335,7 @@ const Home = () => {
 
       {/* Health Tips */}
       <div className="px-4 mt-6">
-        <h2 className="text-lg font-semibold mb-4">Today's Health Tips</h2>
+        <h2 className="text-lg font-semibold mb-4">{t("home.healthTips", { defaultValue: "Today's Health Tips" })}</h2>
         <div className="space-y-3">
           {healthTips.map((tip, index) => (
             <Card key={index} className="p-4 flex items-center gap-3 animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>

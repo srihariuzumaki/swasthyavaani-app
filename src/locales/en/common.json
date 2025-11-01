@@ -1,0 +1,67 @@
+{
+  "app": {
+    "name": "Swasthya Vaani",
+    "tagline": "Your Health Companion"
+  },
+  "common": {
+    "search": "Search medicines...",
+    "searchResults": "Search Results",
+    "noResults": "No medicines found",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done"
+  },
+  "home": {
+    "greeting": "Hello, {{name}}!",
+    "welcome": "How can we help you today?",
+    "quickActions": "Quick Actions",
+    "healthTips": "Today's Health Tips",
+    "aiAssistant": "Talk to AI Assistant",
+    "aiAssistantDesc": "Ask about medicines, symptoms, or health advice in your language"
+  },
+  "medicine": {
+    "details": "Medicine Details",
+    "name": "Name",
+    "genericName": "Generic Name",
+    "category": "Category",
+    "description": "Description",
+    "uses": "Uses",
+    "dosage": "Dosage",
+    "adults": "Adults",
+    "children": "Children",
+    "sideEffects": "Side Effects",
+    "contraindications": "Contraindications",
+    "warnings": "Warnings",
+    "precautions": "Precautions",
+    "storage": "Storage Instructions",
+    "prescriptionRequired": "Prescription Required"
+  },
+  "profile": {
+    "title": "Profile",
+    "preferences": "Preferences",
+    "notifications": "Notifications",
+    "medicationReminders": "Medication Reminders",
+    "healthTips": "Health Tips",
+    "language": "Language",
+    "changeLanguage": "Change Language",
+    "supports": "Supports: Hindi, Tamil, Telugu, Bengali, Marathi, Gujarati, Kannada"
+  },
+  "languages": {
+    "en": "English",
+    "hi": "हिंदी (Hindi)",
+    "ta": "தமிழ் (Tamil)",
+    "te": "తెలుగు (Telugu)",
+    "bn": "বাংলা (Bengali)",
+    "mr": "मराठी (Marathi)",
+    "gu": "ગુજરાતી (Gujarati)",
+    "kn": "ಕನ್ನಡ (Kannada)"
+  }
+}
+

@@ -1,0 +1,67 @@
+{
+  "app": {
+    "name": "ಸ್ವಸ್ಥ್ಯ ವಾಣಿ",
+    "tagline": "ನಿಮ್ಮ ಆರೋಗ್ಯ ಸಹಚರ"
+  },
+  "common": {
+    "search": "ಮದ್ದುಗಳನ್ನು ಹುಡುಕಿ...",
+    "searchResults": "ಹುಡುಕಾಟ ಫಲಿತಾಂಶಗಳು",
+    "noResults": "ಮದ್ದುಗಳು ಕಂಡುಬಂದಿಲ್ಲ",
+    "loading": "ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
+    "error": "ಒಂದು ದೋಷ ಸಂಭವಿಸಿದೆ",
+    "save": "ಸೇವ್ ಮಾಡಿ",
+    "cancel": "ರದ್ದುಮಾಡಿ",
+    "delete": "ಅಳಿಸಿ",
+    "edit": "ಸಂಪಾದಿಸಿ",
+    "close": "ಮುಚ್ಚಿ",
+    "back": "ಹಿಂದೆ",
+    "next": "ಮುಂದೆ",
+    "done": "ಪೂರ್ಣಗೊಂಡಿದೆ"
+  },
+  "home": {
+    "greeting": "ನಮಸ್ಕಾರ, {{name}}!",
+    "welcome": "ಇಂದು ನಾವು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?",
+    "quickActions": "ತ್ವರಿತ ಕ್ರಿಯೆಗಳು",
+    "healthTips": "ಇಂದಿನ ಆರೋಗ್ಯ ಸಲಹೆಗಳು",
+    "aiAssistant": "AI ಸಹಾಯಕನೊಂದಿಗೆ ಮಾತನಾಡಿ",
+    "aiAssistantDesc": "ಮದ್ದುಗಳು, ಲಕ್ಷಣಗಳು ಅಥವಾ ಆರೋಗ್ಯ ಸಲಹೆಗಳ ಕುರಿತು ನಿಮ್ಮ ಭಾಷೆಯಲ್ಲಿ ಕೇಳಿ"
+  },
+  "medicine": {
+    "details": "ಮದ್ದು ವಿವರಗಳು",
+    "name": "ಹೆಸರು",
+    "genericName": "ಸಾಮಾನ್ಯ ಹೆಸರು",
+    "category": "ವರ್ಗ",
+    "description": "ವಿವರಣೆ",
+    "uses": "ಬಳಕೆಗಳು",
+    "dosage": "ಡೋಸ್",
+    "adults": "ವಯಸ್ಕರು",
+    "children": "ಮಕ್ಕಳು",
+    "sideEffects": "ಪಾರ್ಶ್ವ ಪರಿಣಾಮಗಳು",
+    "contraindications": "ವಿರೋಧಾಭಾಸಗಳು",
+    "warnings": "ಎಚ್ಚರಿಕೆಗಳು",
+    "precautions": "ಎಚ್ಚರಿಕೆಗಳು",
+    "storage": "ಸಂಗ್ರಹ ಸೂಚನೆಗಳು",
+    "prescriptionRequired": "ಪ್ರಿಸ್ಕ್ರಿಪ್ಷನ್ ಅಗತ್ಯವಿದೆ"
+  },
+  "profile": {
+    "title": "ಪ್ರೊಫೈಲ್",
+    "preferences": "ಆದ್ಯತೆಗಳು",
+    "notifications": "ಅಧಿಸೂಚನೆಗಳು",
+    "medicationReminders": "ಮದ್ದು ನೆನಪುಗಳು",
+    "healthTips": "ಆರೋಗ್ಯ ಸಲಹೆಗಳು",
+    "language": "ಭಾಷೆ",
+    "changeLanguage": "ಭಾಷೆಯನ್ನು ಬದಲಾಯಿಸಿ",
+    "supports": "ಬೆಂಬಲಿಸಿದ: ಹಿಂದಿ, ತಮಿಳು, ತೆಲುಗು, ಬಂಗಾಳಿ, ಮರಾಠಿ, ಗುಜರಾತಿ, ಕನ್ನಡ"
+  },
+  "languages": {
+    "en": "English",
+    "hi": "हिंदी (Hindi)",
+    "ta": "தமிழ் (Tamil)",
+    "te": "తెలుగు (Telugu)",
+    "bn": "বাংলা (Bengali)",
+    "mr": "मराठी (Marathi)",
+    "gu": "ગુજરાતી (Gujarati)",
+    "kn": "ಕನ್ನಡ (Kannada)"
+  }
+}
+

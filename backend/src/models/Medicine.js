@@ -8,6 +8,17 @@ const medicineSchema = new mongoose.Schema({
         unique: true,
         maxlength: [100, 'Medicine name cannot be more than 100 characters'],
     },
+    // Multilingual names for medicine
+    translations: {
+        en: { name: String, genericName: String, description: String },
+        hi: { name: String, genericName: String, description: String },
+        ta: { name: String, genericName: String, description: String },
+        te: { name: String, genericName: String, description: String },
+        bn: { name: String, genericName: String, description: String },
+        mr: { name: String, genericName: String, description: String },
+        gu: { name: String, genericName: String, description: String },
+        kn: { name: String, genericName: String, description: String },
+    },
     genericName: {
         type: String,
         trim: true,
@@ -25,6 +36,17 @@ const medicineSchema = new mongoose.Schema({
         type: String,
         trim: true,
         maxlength: [1000, 'Description cannot be more than 1000 characters'],
+    },
+    // Multilingual indications/uses
+    multilingualIndications: {
+        en: [String],
+        hi: [String],
+        ta: [String],
+        te: [String],
+        bn: [String],
+        mr: [String],
+        gu: [String],
+        kn: [String],
     },
     indications: [{
         type: String,

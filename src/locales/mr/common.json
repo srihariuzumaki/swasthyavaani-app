@@ -1,0 +1,67 @@
+{
+  "app": {
+    "name": "स्वस्थ्य वाणी",
+    "tagline": "तुमचा आरोग्य साथी"
+  },
+  "common": {
+    "search": "औषधे शोधा...",
+    "searchResults": "शोध परिणाम",
+    "noResults": "औषधे सापडली नाहीत",
+    "loading": "लोड होत आहे...",
+    "error": "एक त्रुटी आली",
+    "save": "जतन करा",
+    "cancel": "रद्द करा",
+    "delete": "हटवा",
+    "edit": "संपादन करा",
+    "close": "बंद करा",
+    "back": "मागे",
+    "next": "पुढे",
+    "done": "पूर्ण"
+  },
+  "home": {
+    "greeting": "नमस्कार, {{name}}!",
+    "welcome": "आज आम्ही तुम्हाला कसे मदत करू शकतो?",
+    "quickActions": "त्वरित क्रिया",
+    "healthTips": "आजच्या आरोग्य टिप्स",
+    "aiAssistant": "AI असिस्टंटशी बोला",
+    "aiAssistantDesc": "औषधे, लक्षणे किंवा आरोग्य सल्ल्याबद्दल तुमच्या भाषेत विचारा"
+  },
+  "medicine": {
+    "details": "औषध तपशील",
+    "name": "नाव",
+    "genericName": "सामान्य नाव",
+    "category": "वर्ग",
+    "description": "वर्णन",
+    "uses": "वापर",
+    "dosage": "डोस",
+    "adults": "प्रौढ",
+    "children": "मुले",
+    "sideEffects": "बाजूचे प्रभाव",
+    "contraindications": "विरोधाभास",
+    "warnings": "चेतावणी",
+    "precautions": "सावधगिरी",
+    "storage": "स्टोरेज सूचना",
+    "prescriptionRequired": "प्रिस्क्रिप्शन आवश्यक"
+  },
+  "profile": {
+    "title": "प्रोफाइल",
+    "preferences": "प्राधान्ये",
+    "notifications": "सूचना",
+    "medicationReminders": "औषध आठवण्या",
+    "healthTips": "आरोग्य टिप्स",
+    "language": "भाषा",
+    "changeLanguage": "भाषा बदला",
+    "supports": "समर्थित: हिंदी, तमिळ, तेलुगू, बंगाली, मराठी, गुजराती, कन्नड"
+  },
+  "languages": {
+    "en": "English",
+    "hi": "हिंदी (Hindi)",
+    "ta": "தமிழ் (Tamil)",
+    "te": "తెలుగు (Telugu)",
+    "bn": "বাংলা (Bengali)",
+    "mr": "मराठी (Marathi)",
+    "gu": "ગુજરાતી (Gujarati)",
+    "kn": "ಕನ್ನಡ (Kannada)"
+  }
+}
+
