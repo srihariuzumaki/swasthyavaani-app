@@ -1,6 +1,7 @@
 import Medicine from '../models/Medicine.js';
 import { createError } from '../middleware/errorHandler.js';
 import { fetchComprehensiveMedicineData, getMedicineSuggestions } from '../utils/medlinePlusService.js';
+import { findMedicineNameFromImage, extractTextFromImage } from '../utils/ocrService.js';
 
 // Medicine recognition function using trusted sources
 export const recognizeMedicineFromImage = async (imageBase64, useTrustedSources = false, medicineName = null) => {
@@ -85,39 +86,43 @@ export const scanMedicine = async (req, res, next) => {
   try {
     const { image, useTrustedSources = true, medicineName } = req.body;
     
-    // If image is provided but no medicine name, we can still work with the image
-    // but we'll need the medicine name. For now, if no medicine name is provided,
-    // return an error asking for medicine name OR use fallback to show available medicines
-    if (!medicineName) {
-      // Check if we have image data
-      if (!image) {
-        return next(createError(400, 'Either image or medicine name is required'));
-      }
-      
-      // If we have image but no medicine name, try to use the fallback method
-      // In a real implementation, you would use OCR here to extract medicine name from image
-      // For now, we'll return a random medicine from database as fallback
-      const result = await recognizeMedicineFromImage(image, useTrustedSources, null);
-      
-      if (!result.success) {
-        return next(createError(404, result.error || 'Could not identify medicine from image. Please try entering the medicine name manually or provide a clearer image.'));
-      }
-      
-      return res.json({
-        status: 'success',
-        data: {
-          medicine: result.medicine,
-          source: result.source,
-          confidence: result.confidence
-        }
-      });
+    // Check if we have image data
+    if (!image) {
+      return next(createError(400, 'Image data is required'));
     }
     
-    // If medicine name is provided, fetch comprehensive medicine data
-    const result = await recognizeMedicineFromImage(image, useTrustedSources, medicineName);
+    let extractedMedicineName = null;
+    
+    // If medicine name is provided, use it directly
+    if (medicineName && medicineName.trim()) {
+      extractedMedicineName = medicineName.trim();
+    } else {
+      // Try to extract medicine name from image using OCR
+      console.log('Extracting medicine name from image using OCR...');
+      try {
+        extractedMedicineName = await findMedicineNameFromImage(image);
+        
+        if (!extractedMedicineName) {
+          // If OCR fails, try extracting all text and showing it to user
+          const fullText = await extractTextFromImage(image);
+          if (fullText && fullText.trim().length > 0) {
+            return next(createError(400, `Could not identify medicine name from image. Extracted text: "${fullText.substring(0, 200)}". Please enter the medicine name manually.`));
+          }
+          return next(createError(400, 'Could not identify medicine name from image. Please enter the medicine name manually or provide a clearer image.'));
+        }
+        
+        console.log('Extracted medicine name from OCR:', extractedMedicineName);
+      } catch (ocrError) {
+        console.error('OCR Error:', ocrError);
+        return next(createError(400, 'Failed to process image. Please enter the medicine name manually or try again with a clearer image.'));
+      }
+    }
+    
+    // Fetch comprehensive medicine data using extracted/provided name
+    const result = await recognizeMedicineFromImage(image, useTrustedSources, extractedMedicineName);
     
     if (!result.success) {
-      return next(createError(404, result.error || 'Could not find medicine information'));
+      return next(createError(404, result.error || `Could not find medicine information for "${extractedMedicineName}". Please try entering the medicine name manually.`));
     }
     
     res.json({
@@ -125,10 +130,12 @@ export const scanMedicine = async (req, res, next) => {
       data: {
         medicine: result.medicine,
         source: result.source,
-        confidence: result.confidence
+        confidence: result.confidence,
+        extractedName: extractedMedicineName // Include extracted name for debugging
       }
     });
   } catch (error) {
+    console.error('Scan medicine error:', error);
     next(error);
   }
 };

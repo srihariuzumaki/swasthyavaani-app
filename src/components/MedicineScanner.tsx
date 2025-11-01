@@ -51,7 +51,7 @@ const MedicineScanner = () => {
 
       if (image.dataUrl) {
         setImageUrl(image.dataUrl);
-        // Small delay to ensure image is set before processing
+        // Auto-process image with OCR to extract medicine name
         setTimeout(() => {
           processMedicineImage(image.dataUrl);
         }, 100);
@@ -71,7 +71,7 @@ const MedicineScanner = () => {
       const dataUrl = e.target?.result as string;
       if (dataUrl) {
         setImageUrl(dataUrl);
-        // Small delay to ensure image is set before processing
+        // Auto-process image with OCR to extract medicine name
         setTimeout(() => {
           processMedicineImage(dataUrl);
         }, 100);
@@ -215,11 +215,16 @@ const MedicineScanner = () => {
             
             {!isProcessing && !medicineInfo && !error && (
               <div className="mb-4 space-y-2">
-                <label className="text-sm font-medium">Medicine Name (Optional - improves accuracy)</label>
+                <label className="text-sm font-medium">
+                  Medicine Name <span className="text-xs text-muted-foreground">(Optional - OCR will auto-detect from image)</span>
+                </label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  If OCR couldn't detect the medicine name, enter it manually here (e.g., "Dolo 650", "Crocin")
+                </p>
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Enter medicine name (e.g., Dolo 650)"
+                    placeholder="Enter medicine name if auto-detection failed (e.g., Dolo 650)"
                     value={medicineName}
                     onChange={(e) => setMedicineName(e.target.value)}
                     onKeyDown={(e) => {
@@ -234,7 +239,7 @@ const MedicineScanner = () => {
                     disabled={isProcessing}
                     className="gap-2"
                   >
-                    Scan
+                    Rescan
                   </Button>
                 </div>
               </div>
@@ -243,7 +248,8 @@ const MedicineScanner = () => {
             {isProcessing && (
               <div className="flex-1 flex flex-col items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-                <p className="text-muted-foreground">Analyzing medicine...</p>
+                <p className="text-muted-foreground">Extracting text from image using OCR...</p>
+                <p className="text-xs text-muted-foreground mt-2">This may take a few seconds</p>
               </div>
             )}
             
