@@ -85,13 +85,40 @@ export const extractMedicineNames = (text) => {
   
   // Common medicine name patterns
   const medicinePatterns = [
+    // Pattern: Brand name with dash and number (e.g., "PARACIP-500", "ARACIP-500")
+    /\b([A-Z]+-\d+)\b/,
     // Pattern: Medicine Name + number (e.g., "Dolo 650", "Crocin 500")
     /\b([A-Z][a-z]+\s+\d+)\b/i,
     // Pattern: Brand name with numbers (e.g., "Dolo 650mg", "Crocin 500mg")
     /\b([A-Z][a-z]+\s+\d+mg?)\b/i,
     // Pattern: Brand name (e.g., "Dolo", "Crocin", "Paracetamol")
     /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/,
+    // Pattern: All caps brand names (e.g., "PARACIP", "ARACIP")
+    /\b([A-Z]{3,}(?:-[A-Z0-9]+)?)\b/,
   ];
+  
+  // Known medicine patterns and synonyms
+  const medicineSynonyms = {
+    'paracip': 'Paracetamol',
+    'aracip': 'Paracetamol',
+    'dolo': 'Paracetamol',
+    'crocin': 'Paracetamol',
+    'calpol': 'Paracetamol',
+    'panadol': 'Paracetamol',
+    'brocetamol': 'Paracetamol',
+    'paraceramo': 'Paracetamol',
+  };
+  
+  // First, extract all brand names with dashes and numbers (highest priority)
+  const brandNamesWithDash = text.match(/\b([A-Z]{3,}-\d+)\b/g);
+  if (brandNamesWithDash) {
+    brandNamesWithDash.forEach(name => {
+      const cleanName = name.trim();
+      if (cleanName.length >= 5 && cleanName.length <= 30) {
+        medicineNames.push(cleanName);
+      }
+    });
+  }
   
   // Extract potential medicine names from text
   for (const line of lines) {
@@ -103,7 +130,9 @@ export const extractMedicineNames = (text) => {
       'tablet', 'capsule', 'take', 'use', 'dosage', 'before', 'after', 
       'food', 'meal', 'prescription', 'expires', 'manufactured', 'date', 
       'batch', 'mfg', 'exp', 'price', 'mrp', 'store', 'instructions',
-      'composition', 'indications', 'side effects', 'warnings'
+      'composition', 'indications', 'side effects', 'warnings', 'tabel',
+      'col', 'for', 'ing', 'altaxes', 'cp', 'nfd', 'aug', 'pxp', 'jul',
+      'r.p', 'fortabs'
     ];
     
     const lowerLine = line.toLowerCase();
@@ -142,17 +171,66 @@ export const extractMedicineNames = (text) => {
     }
   }
   
-  // Remove duplicates and return unique medicine names
-  const uniqueNames = [...new Set(medicineNames)];
+  // Normalize and expand medicine names using synonyms
+  // IMPORTANT: Always keep original names - they work for ANY medicine
+  const normalizedNames = [];
+  for (const name of medicineNames) {
+    const lowerName = name.toLowerCase().replace(/[-\s]/g, '');
+    let foundSynonym = false;
+    
+    // Always add original name first (works for any medicine)
+    normalizedNames.push(name);
+    
+    // Check for synonyms and add normalized versions as alternatives
+    for (const [synonym, genericName] of Object.entries(medicineSynonyms)) {
+      if (lowerName.includes(synonym)) {
+        foundSynonym = true;
+        // If name has number, add generic version (e.g., "PARACIP-500" -> also try "Paracetamol 500")
+        if (/\d/.test(name)) {
+          const number = name.match(/\d+/)?.[0] || '';
+          const normalizedVersion = `${genericName} ${number}`.trim();
+          // Add normalized version if different from original
+          if (normalizedVersion.toLowerCase() !== name.toLowerCase()) {
+            normalizedNames.push(normalizedVersion);
+          }
+          // Also try just generic name
+          normalizedNames.push(genericName);
+        } else {
+          // Add generic name if different from original
+          if (genericName.toLowerCase() !== name.toLowerCase()) {
+            normalizedNames.push(genericName);
+          }
+        }
+        break; // Found a match, no need to check other synonyms
+      }
+    }
+  }
   
-  // Prioritize names that contain numbers (likely dosage like "Dolo 650")
+  // Remove duplicates and return unique medicine names
+  const uniqueNames = [...new Set(normalizedNames)];
+  
+  // Prioritize names that contain numbers and dashes (likely brand names like "PARACIP-500")
+  // IMPORTANT: Original extracted names are tried FIRST to work for ANY medicine
   uniqueNames.sort((a, b) => {
+    // Highest priority: names with dash and number (e.g., "PARACIP-500", "DOLO-650")
+    const aHasDashAndNumber = /-\d/.test(a);
+    const bHasDashAndNumber = /-\d/.test(b);
+    if (aHasDashAndNumber && !bHasDashAndNumber) return -1;
+    if (!aHasDashAndNumber && bHasDashAndNumber) return 1;
+    
+    // Second priority: names with number (e.g., "Paracetamol 500", "Dolo 650")
     const aHasNumber = /\d/.test(a);
     const bHasNumber = /\d/.test(b);
     if (aHasNumber && !bHasNumber) return -1;
     if (!aHasNumber && bHasNumber) return 1;
     
-    // Prioritize shorter names (likely brand names)
+    // Third priority: names that are all caps (likely brand names like "PARACIP", "DOLO")
+    const aIsAllCaps = /^[A-Z]+(?:-\d+)?$/.test(a);
+    const bIsAllCaps = /^[A-Z]+(?:-\d+)?$/.test(b);
+    if (aIsAllCaps && !bIsAllCaps) return -1;
+    if (!aIsAllCaps && bIsAllCaps) return 1;
+    
+    // Fourth priority: shorter names (likely brand names)
     return a.length - b.length;
   });
   
@@ -180,6 +258,13 @@ export const findMedicineNameFromImage = async (imageBase64) => {
     
     if (medicineNames.length === 0) {
       console.log('Could not extract medicine name from text:', extractedText);
+      // Try to extract any capitalized words that might be medicine names
+      const capitalizedWords = extractedText.match(/\b([A-Z]{3,}(?:[-]\d+)?)\b/g);
+      if (capitalizedWords && capitalizedWords.length > 0) {
+        const candidate = capitalizedWords[0];
+        console.log('Using capitalized word as medicine name:', candidate);
+        return candidate;
+      }
       return null;
     }
     

@@ -116,6 +116,7 @@ const MedicineScanner = () => {
       if (response.status === 'success' && response.data?.medicine) {
         setMedicineInfo(response.data.medicine);
         setMedicineName(""); // Clear medicine name input after successful scan
+        setError(null); // Clear any previous errors
         
         // Store search in user history
         try {
@@ -131,6 +132,7 @@ const MedicineScanner = () => {
       } else {
         const errorMsg = (response as any).message || (response as any).data?.message || "Could not identify medicine. Please try entering the medicine name manually below or try again with a clearer image.";
         setError(errorMsg);
+        setMedicineInfo(null); // Clear medicine info
         console.error('Scan failed:', response);
       }
     } catch (error: any) {

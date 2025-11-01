@@ -218,6 +218,9 @@ const BRAND_TO_GENERIC = {
   'dolo': 'paracetamol',
   'calpol': 'paracetamol',
   'panadol': 'paracetamol',
+  'paracip': 'paracetamol',
+  'aracip': 'paracetamol',
+  'cipide': 'paracetamol', // Handle misspelling from OCR
   'brufen': 'ibuprofen',
   'advil': 'ibuprofen',
   'glimstar': 'glimepiride',
@@ -299,13 +302,13 @@ Important: Give specific information about this medicine. Return ONLY valid JSON
 
 /**
  * Enhanced medicine data fetcher using multiple sources
- * Falls back to comprehensive manual data for common medicines
- * @param {string} medicineName - Name of the medicine
+ * Works for ANY medicine name, not just common ones
+ * @param {string} medicineName - Name of the medicine (can be any medicine)
  * @returns {Promise<Object>} Comprehensive medicine data
  */
 export const fetchComprehensiveMedicineData = async (medicineName) => {
   try {
-    // First, try to get from RxNav API (comprehensive database)
+    // First, try to get from RxNav API (comprehensive universal database - works for ANY medicine)
     let medicineData = await fetchMedicineFromMedlinePlus(medicineName);
     
     // If API has data, enhance it with local database details

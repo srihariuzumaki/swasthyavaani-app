@@ -100,21 +100,67 @@ export const scanMedicine = async (req, res, next) => {
       // Try to extract medicine name from image using OCR
       console.log('Extracting medicine name from image using OCR...');
       try {
-        extractedMedicineName = await findMedicineNameFromImage(image);
+        const { extractTextFromImage, extractMedicineNames } = await import('../utils/ocrService.js');
         
-        if (!extractedMedicineName) {
-          // If OCR fails, try extracting all text and showing it to user
-          const fullText = await extractTextFromImage(image);
-          if (fullText && fullText.trim().length > 0) {
-            return next(createError(400, `Could not identify medicine name from image. Extracted text: "${fullText.substring(0, 200)}". Please enter the medicine name manually.`));
-          }
-          return next(createError(400, 'Could not identify medicine name from image. Please enter the medicine name manually or provide a clearer image.'));
+        const fullText = await extractTextFromImage(image);
+        if (!fullText || fullText.trim().length === 0) {
+          return next(createError(400, 'Could not extract text from image. Please enter the medicine name manually or provide a clearer image.'));
         }
         
-        console.log('Extracted medicine name from OCR:', extractedMedicineName);
+        // Get all potential medicine names
+        const allMedicineNames = extractMedicineNames(fullText);
+        
+        if (allMedicineNames.length === 0) {
+          // Try to extract capitalized words as fallback
+          const capitalizedWords = fullText.match(/\b([A-Z]{3,}(?:[-]\d+)?)\b/g);
+          if (capitalizedWords && capitalizedWords.length > 0) {
+            extractedMedicineName = capitalizedWords[0];
+            console.log('Using capitalized word as medicine name:', extractedMedicineName);
+          } else {
+            return next(createError(400, `Could not identify medicine name from image. Extracted text: "${fullText.substring(0, 200)}". Please enter the medicine name manually.`));
+          }
+        } else {
+          extractedMedicineName = allMedicineNames[0];
+          console.log('All extracted medicine names:', allMedicineNames);
+          console.log('Selected medicine name:', extractedMedicineName);
+        }
+        
+        // Try multiple medicine names if we have multiple candidates
+        if (allMedicineNames.length > 0) {
+          let result = null;
+          
+          // Try each medicine name until one succeeds
+          for (let i = 0; i < Math.min(allMedicineNames.length, 5); i++) {
+            const candidateName = allMedicineNames[i];
+            console.log(`Trying medicine name ${i + 1}/${allMedicineNames.length}: "${candidateName}"`);
+            
+            result = await recognizeMedicineFromImage(image, useTrustedSources, candidateName);
+            
+            if (result.success) {
+              extractedMedicineName = candidateName;
+              console.log(`Success with medicine name: ${extractedMedicineName}`);
+              
+              return res.json({
+                status: 'success',
+                data: {
+                  medicine: result.medicine,
+                  source: result.source,
+                  confidence: result.confidence,
+                  extractedName: extractedMedicineName
+                }
+              });
+            } else {
+              console.log(`Medicine name "${candidateName}" failed: ${result.error}`);
+            }
+          }
+          
+          // If all attempts failed, return error with all tried names
+          const triedNames = allMedicineNames.slice(0, 5).join(', ');
+          return next(createError(404, `Could not find medicine information for any of the extracted names: ${triedNames}. Please try entering the medicine name manually.`));
+        }
       } catch (ocrError) {
         console.error('OCR Error:', ocrError);
-        return next(createError(400, 'Failed to process image. Please enter the medicine name manually or try again with a clearer image.'));
+        return next(createError(400, `Failed to process image: ${ocrError.message}. Please enter the medicine name manually or try again with a clearer image.`));
       }
     }
     
