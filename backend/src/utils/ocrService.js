@@ -1,6 +1,6 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY';
-// Use same endpoint as medlinePlusService - gemini-1.5-flash supports vision
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+// Use gemini-pro-vision which is the dedicated vision model for Gemini API
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent';
 
 /**
  * Extract text from image using Gemini Vision API
@@ -70,11 +70,13 @@ export const extractTextFromImage = async (imageBase64) => {
       if (response.status === 404) {
         console.log('404 error - trying alternative endpoint formats...');
         
-        // Try alternative endpoints
+        // Try alternative endpoints with different API versions and models
         const alternativeEndpoints = [
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent',
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent',
-          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent'
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent',
+          'https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent',
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+          'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent',
+          'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent'
         ];
         
         for (const endpoint of alternativeEndpoints) {
