@@ -5,7 +5,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Loader2, 
   ArrowLeft, 
   Pill, 
   AlertCircle, 
@@ -19,6 +18,7 @@ import {
   Sparkles
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { LogoLoader } from "@/components/ui/logo-loader";
 import apiClient from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
 import BottomNav from "@/components/BottomNav";
@@ -63,12 +63,7 @@ const MedicineDetail = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-muted/50 to-background flex items-center justify-center pb-20">
-        <div className="text-center space-y-4 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 border-2 border-primary/30">
-            <Loader2 className="w-10 h-10 animate-spin text-primary" />
-          </div>
-          <p className="text-muted-foreground font-medium">{t("common.loading", { defaultValue: "Loading..." })}</p>
-        </div>
+        <LogoLoader size="lg" showText text={t("common.loading", { defaultValue: "Loading..." })} />
         <BottomNav />
       </div>
     );

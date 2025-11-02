@@ -111,3 +111,24 @@ All colors MUST be HSL.
     @apply transition-transform duration-200 hover:scale-105;
   }
 }
+
+/* Logo Loader Animations */
+@keyframes scale-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.95;
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    stop-color: #3B82F6;
+  }
+  50% {
+    stop-color: #10B981;
+  }
+}

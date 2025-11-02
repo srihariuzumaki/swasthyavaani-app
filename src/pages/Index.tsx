@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { LogoLoader } from "@/components/ui/logo-loader";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -15,9 +16,7 @@ const Index = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary via-secondary to-accent">
-      <div className="text-center text-white">
-        <div className="animate-pulse">Loading...</div>
-      </div>
+      <LogoLoader size="lg" showText text="Loading..." />
     </div>
   );
 };

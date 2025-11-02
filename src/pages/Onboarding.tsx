@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Pill, Activity, Bell, Shield, Mic } from "lucide-react";
+import { AppLogo } from "@/components/ui/AppLogo";
+import { ChevronRight, ChevronLeft, Pill, Activity, Bell, Shield, Mic } from "lucide-react";
 import MobileOTPLogin from "@/components/MobileOTPLogin";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -41,15 +42,59 @@ const slides = [
 const Onboarding = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showLogin, setShowLogin] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
+  // Swipe handling
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+  const minSwipeDistance = 50; // Minimum swipe distance in pixels
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchEndX.current = null;
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    
+    const distance = touchStartX.current - touchEndX.current;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (isLeftSwipe) {
+      handleNext();
+    } else if (isRightSwipe) {
+      handlePrevious();
+    }
+
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
   const handleNext = () => {
+    if (isTransitioning) return;
+    
     if (currentSlide < slides.length - 1) {
+      setIsTransitioning(true);
       setCurrentSlide(currentSlide + 1);
+      setTimeout(() => setIsTransitioning(false), 300);
     } else {
       setShowLogin(true);
     }
+  };
+
+  const handlePrevious = () => {
+    if (isTransitioning || currentSlide === 0) return;
+    
+    setIsTransitioning(true);
+    setCurrentSlide(currentSlide - 1);
+    setTimeout(() => setIsTransitioning(false), 300);
   };
 
   const handleLoginSuccess = () => {
@@ -84,24 +129,41 @@ const Onboarding = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col">
-      {/* Skip button */}
-      <div className="flex justify-end p-4">
+      {/* Header with logo */}
+      <div className="flex justify-between items-center p-4">
+        <div className="flex items-center gap-2">
+          <AppLogo size="sm" />
+          <span className="text-lg font-semibold text-foreground">Swasthya Vaani</span>
+        </div>
         <Button variant="ghost" onClick={handleSkip} className="text-muted-foreground">
           Skip
         </Button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 pb-20">
-        <div className={`mb-12 rounded-full bg-gradient-to-br ${slide.gradient} p-8 shadow-[var(--shadow-medical)] animate-scale-in`}>
+      {/* Content - Swipeable */}
+      <div 
+        className="flex-1 flex flex-col items-center justify-center px-6 pb-20 select-none"
+        style={{ touchAction: 'pan-x' }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div 
+          className={`mb-12 rounded-full bg-gradient-to-br ${slide.gradient} p-8 shadow-[var(--shadow-medical)] transition-all duration-300 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
+        >
           <Icon className="w-20 h-20 text-white" strokeWidth={1.5} />
         </div>
 
-        <h1 className="text-3xl font-bold text-center mb-4 animate-fade-in">
+        <h1 
+          className={`text-3xl font-bold text-center mb-4 transition-all duration-300 ${isTransitioning ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}
+        >
           {slide.title}
         </h1>
 
-        <p className="text-center text-muted-foreground text-lg max-w-sm animate-fade-in">
+        <p 
+          className={`text-center text-muted-foreground text-lg max-w-sm transition-all duration-300 ${isTransitioning ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}
+          style={{ transitionDelay: isTransitioning ? '0ms' : '100ms' }}
+        >
           {slide.description}
         </p>
 
@@ -116,6 +178,22 @@ const Onboarding = () => {
                 }`}
             />
           ))}
+        </div>
+
+        {/* Swipe hint */}
+        <div className="mt-8 flex items-center gap-2 text-xs text-muted-foreground opacity-50">
+          {currentSlide > 0 && (
+            <>
+              <ChevronLeft className="w-4 h-4" />
+              <span>Swipe left or right</span>
+            </>
+          )}
+          {currentSlide === 0 && (
+            <>
+              <ChevronRight className="w-4 h-4" />
+              <span>Swipe to continue</span>
+            </>
+          )}
         </div>
       </div>
 

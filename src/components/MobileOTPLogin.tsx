@@ -5,6 +5,7 @@ import { Input } from './ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { AppLogo } from './ui/AppLogo';
 import { Phone, MessageSquare, User, Calendar, Users, Loader2, CheckCircle2, Sparkles, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -242,8 +243,10 @@ const MobileOTPLogin: React.FC<MobileOTPLoginProps> = ({ onSuccess }) => {
             <div className={`w-full max-w-md transition-all duration-500 relative z-10 ${animateStep ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
                 {/* App Name Header */}
                 <div className="text-center mb-6 animate-fade-in">
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mb-1 flex items-center justify-center gap-2">
-                        <Sparkles className="w-6 h-6 text-primary animate-pulse" />
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                        <AppLogo size="md" />
+                    </div>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mb-1">
                         {t('app.name', { defaultValue: 'Swasthya Vaani' })}
                     </h1>
                     <p className="text-sm text-muted-foreground font-medium">

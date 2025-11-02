@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Camera, Mic, Activity, Pill, Heart, TrendingUp, Bot, LogOut, X, Loader2 } from "lucide-react";
+import { Search, Camera, Mic, Activity, Pill, Heart, TrendingUp, Bot, LogOut, X } from "lucide-react";
 import { toast } from "sonner";
+import { LogoLoader } from "@/components/ui/logo-loader";
 import AIAssistant from "@/components/AIAssistant";
 import ThemeToggle from "@/components/ThemeToggle";
 import DisclaimerModal from "@/components/DisclaimerModal";
@@ -245,7 +246,7 @@ const Home = () => {
               
               {isSearching ? (
                 <div className="flex justify-center items-center p-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <LogoLoader size="md" />
                 </div>
               ) : searchResults.length > 0 ? (
                 <div className="divide-y">

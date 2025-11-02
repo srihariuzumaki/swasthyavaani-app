@@ -5,8 +5,9 @@ import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Loader2, Camera as CameraIcon, X, RotateCcw, Pill, Sparkles, ArrowRight, CheckCircle2, Info, AlertTriangle, Shield, Heart, XCircle, AlertCircle } from "lucide-react";
+import { Camera as CameraIcon, X, RotateCcw, Pill, Sparkles, ArrowRight, CheckCircle2, Info, AlertTriangle, Shield, Heart, XCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { LogoLoader } from "./ui/logo-loader";
 import apiClient, { MedicineScanResponse } from "@/lib/api";
 import { ScrollArea } from "./ui/scroll-area";
 
@@ -296,16 +297,12 @@ const MedicineScanner = () => {
 
             {isProcessing && (
               <Card className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-primary/5 to-accent/5 border-2 border-primary/20">
-                <div className="relative mb-6">
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full blur-2xl animate-pulse"></div>
-                  <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/20 flex items-center justify-center">
-                    <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                  </div>
-                </div>
-                <p className="text-lg font-semibold text-foreground mb-1">
-                  {t("medicine.processing", { defaultValue: "Processing Image..." })}
-                </p>
-                <p className="text-sm text-muted-foreground text-center max-w-xs">
+                <LogoLoader 
+                  size="lg" 
+                  showText 
+                  text={t("medicine.processing", { defaultValue: "Processing Image..." })} 
+                />
+                <p className="text-sm text-muted-foreground text-center max-w-xs mt-4">
                   {t("medicine.processingDesc", { defaultValue: "Extracting text from image using OCR. This may take a few seconds." })}
                 </p>
               </Card>
