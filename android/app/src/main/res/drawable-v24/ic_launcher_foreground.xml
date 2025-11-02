@@ -24,7 +24,6 @@
             android:fillAlpha="0.3"
             android:fillType="nonZero"
             android:strokeColor="#FFFFFF"
-            android:strokeWidth="2"
-            android:strokeLinecap="round" />
+            android:strokeWidth="2" />
     </group>
 </vector>
