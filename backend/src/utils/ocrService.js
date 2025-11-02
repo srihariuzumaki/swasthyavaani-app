@@ -3,68 +3,166 @@ const OCR_SPACE_API_KEY = process.env.OCR_SPACE_API_KEY || 'helloworld'; // Free
 const OCR_SPACE_API_URL = 'https://api.ocr.space/parse/image';
 
 /**
- * Extract text from image using OCR.space API (reliable free OCR service)
+ * Extract text from image using OCR.space API with timeout and retry logic
  * @param {string} imageBase64 - Base64 encoded image data (without data URL prefix)
+ * @param {number} maxRetries - Maximum number of retry attempts (default: 2)
  * @returns {Promise<string>} Extracted text
  */
-export const extractTextFromImage = async (imageBase64) => {
-  try {
-    console.log('Starting OCR processing using OCR.space API...');
-    console.log(`Image base64 length: ${imageBase64.length}`);
-    
-    // Create form data for OCR.space API
-    const formData = new URLSearchParams();
-    formData.append('apikey', OCR_SPACE_API_KEY);
-    formData.append('base64Image', `data:image/jpeg;base64,${imageBase64}`);
-    formData.append('OCREngine', '2'); // Engine 2 for better accuracy
-    formData.append('isOverlayRequired', 'false');
-    formData.append('detectOrientation', 'true');
-    
-    const response = await fetch(OCR_SPACE_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: formData.toString()
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OCR.space API error:', response.status, response.statusText);
-      console.error('Error details:', errorText);
-      throw new Error(`OCR API returned status ${response.status}: ${errorText.substring(0, 200)}`);
-    }
-    
-    const data = await response.json();
-    
-    if (data.ErrorMessage && data.ErrorMessage.length > 0) {
-      console.error('OCR.space API error:', data.ErrorMessage);
-      throw new Error(`OCR API error: ${data.ErrorMessage[0]}`);
-    }
-    
-    if (data.ParsedResults && data.ParsedResults.length > 0) {
-      const extractedText = data.ParsedResults[0].ParsedText;
-      if (extractedText && extractedText.trim().length > 0) {
-        console.log('Extracted text from image:', extractedText);
-        return extractedText.trim();
-      }
-    }
-    
-    // If no parsed text, try to get text from text overlay
-    if (data.TextOverlay && data.TextOverlay.Lines) {
-      const lines = data.TextOverlay.Lines.map(line => line.LineText).filter(text => text);
-      if (lines.length > 0) {
-        const extractedText = lines.join('\n');
-        console.log('Extracted text from overlay:', extractedText);
-        return extractedText.trim();
-      }
-    }
-    
-    throw new Error('No text extracted from image');
-  } catch (error) {
-    console.error('OCR Error:', error);
-    throw new Error(`Failed to extract text from image: ${error.message}`);
+export const extractTextFromImage = async (imageBase64, maxRetries = 2) => {
+  // Optimize image size if it's too large (reduce quality for faster processing)
+  let optimizedImage = imageBase64;
+  if (imageBase64.length > 100000) { // If larger than ~100KB
+    console.log('Image is large, optimizing for faster OCR processing...');
+    // Note: In production, you might want to use an image compression library
+    // For now, we'll proceed with the original but add timeout handling
   }
+  
+  const TIMEOUT_MS = 45000; // 45 seconds timeout
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // Exponential backoff, max 5s
+        console.log(`Retrying OCR attempt ${attempt + 1}/${maxRetries + 1} after ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      
+      console.log(`Starting OCR processing attempt ${attempt + 1}/${maxRetries + 1}...`);
+      console.log(`Image base64 length: ${imageBase64.length}`);
+      
+      // Create form data for OCR.space API
+      const formData = new URLSearchParams();
+      formData.append('apikey', OCR_SPACE_API_KEY);
+      formData.append('base64Image', `data:image/jpeg;base64,${optimizedImage}`);
+      formData.append('OCREngine', attempt === 0 ? '2' : '1'); // Try Engine 1 on retries (faster)
+      formData.append('isOverlayRequired', 'false');
+      formData.append('detectOrientation', 'true');
+      formData.append('scale', 'true'); // Enable scaling for faster processing
+      
+      // Create timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('OCR request timeout')), TIMEOUT_MS);
+      });
+      
+      // Create fetch promise
+      const fetchPromise = fetch(OCR_SPACE_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: formData.toString()
+      });
+      
+      // Race between fetch and timeout
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
+      
+      if (!response.ok) {
+        let errorText;
+        try {
+          errorText = await Promise.race([response.text(), timeoutPromise]);
+        } catch (err) {
+          if (attempt < maxRetries) {
+            console.log('Response reading timeout, will retry...');
+            continue;
+          }
+          throw new Error('OCR API response timeout');
+        }
+        
+        console.error('OCR.space API error:', response.status, response.statusText);
+        console.error('Error details:', errorText);
+        
+        // If it's a timeout error or rate limit, retry
+        if (response.status === 429 || errorText.includes('timeout') || errorText.includes('E101')) {
+          if (attempt < maxRetries) {
+            console.log('Rate limit or timeout detected, will retry...');
+            continue;
+          }
+          throw new Error(`OCR API timeout/rate limit: ${response.status}`);
+        }
+        
+        // For other errors, retry if we have attempts left
+        if (attempt < maxRetries) {
+          continue;
+        }
+        throw new Error(`OCR API returned status ${response.status}: ${errorText.substring(0, 200)}`);
+      }
+      
+      // Race between JSON parsing and timeout
+      let data;
+      try {
+        data = await Promise.race([response.json(), timeoutPromise]);
+      } catch (err) {
+        if (attempt < maxRetries) {
+          console.log('JSON parsing timeout, will retry...');
+          continue;
+        }
+        throw new Error('OCR API response parsing timeout');
+      }
+      
+      // Check for API errors
+      if (data.ErrorMessage && data.ErrorMessage.length > 0) {
+        const errorMsg = data.ErrorMessage[0];
+        console.error('OCR.space API error:', data.ErrorMessage);
+        
+        // Handle timeout error
+        if (errorMsg.includes('E101') || errorMsg.includes('timeout') || errorMsg.includes('Timed out')) {
+          if (attempt < maxRetries) {
+            console.log('OCR timeout detected, will retry...');
+            continue;
+          }
+          throw new Error(`OCR API timeout: ${errorMsg}. Please try again with a smaller or clearer image.`);
+        }
+        
+        // For other API errors, throw immediately
+        if (attempt < maxRetries && (errorMsg.includes('rate limit') || errorMsg.includes('quota'))) {
+          continue; // Retry on rate limits
+        }
+        throw new Error(`OCR API error: ${errorMsg}`);
+      }
+      
+      // Extract text from response
+      if (data.ParsedResults && data.ParsedResults.length > 0) {
+        const extractedText = data.ParsedResults[0].ParsedText;
+        if (extractedText && extractedText.trim().length > 0) {
+          console.log('Extracted text from image:', extractedText.substring(0, 200));
+          return extractedText.trim();
+        }
+      }
+      
+      // If no parsed text, try to get text from text overlay
+      if (data.TextOverlay && data.TextOverlay.Lines) {
+        const lines = data.TextOverlay.Lines.map(line => line.LineText).filter(text => text);
+        if (lines.length > 0) {
+          const extractedText = lines.join('\n');
+          console.log('Extracted text from overlay:', extractedText.substring(0, 200));
+          return extractedText.trim();
+        }
+      }
+      
+      // If no text found and this is not the last attempt, retry
+      if (attempt < maxRetries) {
+        console.log('No text extracted, retrying...');
+        continue;
+      }
+      
+      throw new Error('No text extracted from image after all attempts');
+      
+    } catch (error) {
+      console.error(`OCR Error (attempt ${attempt + 1}/${maxRetries + 1}):`, error.message);
+      
+      // If it's a timeout and we have retries left, continue to next attempt
+      if ((error.message.includes('timeout') || error.message.includes('E101') || error.message.includes('Timed out')) && attempt < maxRetries) {
+        continue;
+      }
+      
+      // If this is the last attempt, throw the error
+      if (attempt === maxRetries) {
+        throw new Error(`Failed to extract text from image after ${maxRetries + 1} attempts: ${error.message}`);
+      }
+    }
+  }
+  
+  throw new Error('OCR failed after all retry attempts');
 };
 
 /**

@@ -17,7 +17,6 @@ import {
   XCircle,
   Sparkles
 } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { LogoLoader } from "@/components/ui/logo-loader";
 import apiClient from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -94,7 +93,7 @@ const MedicineDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/50 to-background pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/50 to-background pb-20 overflow-x-hidden">
       {/* Decorative Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-20 right-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl animate-pulse"></div>
@@ -140,11 +139,10 @@ const MedicineDetail = () => {
       </div>
 
       {/* Main Content */}
-      <div className="px-4 mt-6 animate-fade-in">
-        <ScrollArea className="max-h-[calc(100vh-280px)]">
-          <div className="space-y-4 pb-4">
+      <div className="mt-6 animate-fade-in">
+        <div className="space-y-3 pb-4">
             {/* Medicine Name Card */}
-            <Card className="p-5 bg-gradient-to-br from-card to-muted/30 border-2 border-primary/10 shadow-[var(--shadow-medical)] hover:shadow-lg transition-shadow">
+            <Card className="p-4 sm:p-5 bg-gradient-to-br from-card to-muted/30 border-0 border-x-0 rounded-none shadow-[var(--shadow-medical)] hover:shadow-lg transition-shadow">
               <div className="space-y-3">
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                   {medicine.name}
@@ -171,7 +169,7 @@ const MedicineDetail = () => {
 
             {/* Description Section */}
             {medicine.description && (
-              <Card className="p-5 bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50 dark:from-blue-950/20 dark:via-card dark:to-purple-950/20 border-2 border-primary/10 shadow-sm hover:shadow-md transition-shadow">
+              <Card className="p-4 sm:p-5 bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50 dark:from-blue-950/20 dark:via-card dark:to-purple-950/20 border-0 border-x-0 rounded-none shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-start gap-3 mb-4">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 border-2 border-primary/20 shrink-0">
                     <Info className="w-5 h-5 text-primary" />
@@ -198,7 +196,7 @@ const MedicineDetail = () => {
 
             {/* Uses Section */}
             {medicine.indications && medicine.indications.length > 0 && (
-              <Card className="p-5 bg-gradient-to-br from-green-50/50 via-white to-emerald-50/50 dark:from-green-950/20 dark:via-card dark:to-emerald-950/20 border-2 border-green-500/20 shadow-sm hover:shadow-md transition-shadow">
+              <Card className="p-4 sm:p-5 bg-gradient-to-br from-green-50/50 via-white to-emerald-50/50 dark:from-green-950/20 dark:via-card dark:to-emerald-950/20 border-0 border-x-0 rounded-none shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-500/10 border-2 border-green-500/20">
                     <Heart className="w-5 h-5 text-green-600 dark:text-green-400" />
@@ -220,7 +218,7 @@ const MedicineDetail = () => {
 
             {/* Dosage Section */}
             {medicine.dosage && (
-              <Card className="p-5 bg-gradient-to-br from-card to-muted/30 border-2 border-primary/10 shadow-sm hover:shadow-md transition-shadow">
+              <Card className="p-4 sm:p-5 bg-gradient-to-br from-card to-muted/30 border-0 border-x-0 rounded-none shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/10 border-2 border-blue-500/20">
                     <Pill className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -262,7 +260,7 @@ const MedicineDetail = () => {
 
             {/* Side Effects Section */}
             {medicine.sideEffects && medicine.sideEffects.length > 0 && (
-              <Card className="p-5 bg-gradient-to-br from-orange-50/50 via-white to-red-50/50 dark:from-orange-950/20 dark:via-card dark:to-red-950/20 border-2 border-orange-500/20 shadow-sm hover:shadow-md transition-shadow">
+              <Card className="p-4 sm:p-5 bg-gradient-to-br from-orange-50/50 via-white to-red-50/50 dark:from-orange-950/20 dark:via-card dark:to-red-950/20 border-0 border-x-0 rounded-none shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-orange-500/10 border-2 border-orange-500/20">
                     <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
@@ -284,7 +282,7 @@ const MedicineDetail = () => {
 
             {/* Contraindications Section */}
             {medicine.contraindications && medicine.contraindications.length > 0 && (
-              <Card className="p-5 bg-gradient-to-br from-red-50/50 via-white to-rose-50/50 dark:from-red-950/20 dark:via-card dark:to-rose-950/20 border-2 border-red-500/20 shadow-sm hover:shadow-md transition-shadow">
+              <Card className="p-4 sm:p-5 bg-gradient-to-br from-red-50/50 via-white to-rose-50/50 dark:from-red-950/20 dark:via-card dark:to-rose-950/20 border-0 border-x-0 rounded-none shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-red-500/10 border-2 border-red-500/20">
                     <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
@@ -306,7 +304,7 @@ const MedicineDetail = () => {
 
             {/* Additional Warnings/Precautions if available */}
             {medicine.warnings && medicine.warnings.length > 0 && (
-              <Card className="p-5 bg-gradient-to-br from-yellow-50/50 via-white to-amber-50/50 dark:from-yellow-950/20 dark:via-card dark:to-amber-950/20 border-2 border-yellow-500/20 shadow-sm hover:shadow-md transition-shadow">
+              <Card className="p-4 sm:p-5 bg-gradient-to-br from-yellow-50/50 via-white to-amber-50/50 dark:from-yellow-950/20 dark:via-card dark:to-amber-950/20 border-0 border-x-0 rounded-none shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-yellow-500/10 border-2 border-yellow-500/20">
                     <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
@@ -326,7 +324,6 @@ const MedicineDetail = () => {
               </Card>
             )}
           </div>
-        </ScrollArea>
       </div>
 
       <BottomNav />

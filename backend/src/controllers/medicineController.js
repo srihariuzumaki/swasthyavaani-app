@@ -160,7 +160,18 @@ export const scanMedicine = async (req, res, next) => {
         }
       } catch (ocrError) {
         console.error('OCR Error:', ocrError);
-        return next(createError(400, `Failed to process image: ${ocrError.message}. Please enter the medicine name manually or try again with a clearer image.`));
+        
+        // Provide more helpful error messages
+        let errorMessage = ocrError.message;
+        if (errorMessage.includes('timeout') || errorMessage.includes('E101') || errorMessage.includes('Timed out')) {
+          errorMessage = 'OCR processing timed out. This may happen with large or complex images. Please try again with a smaller, clearer image or enter the medicine name manually.';
+        } else if (errorMessage.includes('rate limit') || errorMessage.includes('quota')) {
+          errorMessage = 'OCR service is temporarily unavailable due to high usage. Please try again in a few moments or enter the medicine name manually.';
+        } else {
+          errorMessage = `Failed to process image: ${errorMessage}. Please enter the medicine name manually or try again with a clearer image.`;
+        }
+        
+        return next(createError(400, errorMessage));
       }
     }
     

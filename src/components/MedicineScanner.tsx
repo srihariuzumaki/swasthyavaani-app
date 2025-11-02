@@ -178,8 +178,8 @@ const MedicineScanner = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/50 to-background">
-      <Card className="flex flex-col h-[calc(100vh-80px)] max-w-2xl mx-auto shadow-[var(--shadow-medical)] border-0 backdrop-blur-sm bg-card/95">
-        <div className="p-6 bg-gradient-to-br from-primary via-secondary to-accent rounded-t-xl relative overflow-hidden">
+      <div className="flex flex-col h-[calc(100vh-80px)] w-full">
+        <div className="p-4 sm:p-6 bg-gradient-to-br from-primary via-secondary to-accent relative overflow-hidden">
           <div className="absolute inset-0 opacity-10" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
           }}></div>
@@ -204,9 +204,9 @@ const MedicineScanner = () => {
           </div>
         </div>
 
-      <div className="flex-1 p-4 flex flex-col">
+        <div className="flex-1 flex flex-col">
         {!imageUrl ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-6 p-8">
+          <div className="flex-1 flex flex-col items-center justify-center gap-6 p-4">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full blur-2xl animate-pulse"></div>
               <div className="relative p-8 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/20 backdrop-blur-sm">
@@ -221,16 +221,21 @@ const MedicineScanner = () => {
                 {t("medicine.scanDesc", { defaultValue: "Take a photo of your medicine packaging or prescription to get detailed information" })}
               </p>
             </div>
-            <div className="flex gap-4 w-full max-w-xs">
+            <div className="flex gap-4 w-full px-2 sm:px-4">
               <Button 
                 onClick={takePicture} 
                 className="flex-1 bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-[var(--shadow-medical)] h-12 text-base font-semibold"
                 size="lg"
               >
-                <CameraIcon className="w-4 h-4" />
+                <CameraIcon className="w-4 h-4 mr-2" />
                 Take Photo
               </Button>
-              <Button variant="outline" onClick={triggerFileInput} className="gap-2">
+              <Button 
+                variant="outline" 
+                onClick={triggerFileInput} 
+                className="flex-1 h-12 text-base font-semibold border-2 hover:bg-muted"
+                size="lg"
+              >
                 Upload Image
               </Button>
               <input
@@ -243,12 +248,12 @@ const MedicineScanner = () => {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col gap-4 p-4">
-            <Card className="relative overflow-hidden border-2 border-primary/20 shadow-lg">
+          <div className="flex-1 flex flex-col gap-4">
+            <Card className="relative overflow-hidden border-0 border-x-0 rounded-none border-y-2 border-primary/20 shadow-lg">
               <img
                 src={imageUrl}
                 alt="Medicine"
-                className="w-full h-48 object-contain bg-gradient-to-br from-muted/50 to-muted rounded-md"
+                className="w-full h-48 object-contain bg-gradient-to-br from-muted/50 to-muted"
               />
               <Button
                 size="icon"
@@ -261,7 +266,7 @@ const MedicineScanner = () => {
             </Card>
             
             {!isProcessing && !medicineInfo && !error && (
-              <Card className="p-4 bg-gradient-to-br from-muted/30 to-muted/50 border-2 border-primary/10">
+              <Card className="p-4 mx-0 bg-gradient-to-br from-muted/30 to-muted/50 border-0 border-x-0 rounded-none border-y-2 border-primary/10">
                 <label className="text-sm font-semibold flex items-center gap-2 mb-2">
                   <Pill className="w-4 h-4 text-primary" />
                   {t("medicine.manualName", { defaultValue: "Medicine Name" })}
@@ -296,7 +301,7 @@ const MedicineScanner = () => {
             )}
 
             {isProcessing && (
-              <Card className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-primary/5 to-accent/5 border-2 border-primary/20">
+              <Card className="flex-1 flex flex-col items-center justify-center p-8 mx-0 bg-gradient-to-br from-primary/5 to-accent/5 border-0 border-x-0 rounded-none border-y-2 border-primary/20">
                 <LogoLoader 
                   size="lg" 
                   showText 
@@ -309,7 +314,7 @@ const MedicineScanner = () => {
             )}
             
             {error && (
-              <Card className="flex-1 flex flex-col items-center justify-center gap-6 p-8 bg-gradient-to-br from-red-50/50 to-orange-50/50 dark:from-red-950/20 dark:to-orange-950/20 border-2 border-red-500/20">
+              <Card className="flex-1 flex flex-col items-center justify-center gap-6 p-8 mx-0 bg-gradient-to-br from-red-50/50 to-orange-50/50 dark:from-red-950/20 dark:to-orange-950/20 border-0 border-x-0 rounded-none border-y-2 border-red-500/20">
                 <div className="relative mb-4">
                   <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-full blur-2xl animate-pulse"></div>
                   <div className="relative w-16 h-16 rounded-full bg-red-500/10 border-2 border-red-500/20 flex items-center justify-center">
@@ -360,9 +365,9 @@ const MedicineScanner = () => {
             
             {medicineInfo && (
               <ScrollArea className="flex-1 min-h-0">
-                <div className="space-y-4 pr-4 pb-4">
+                <div className="space-y-4 pb-4">
                   {/* Medicine Name Card */}
-                  <Card className="p-5 bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border-2 border-green-500/20 shadow-sm">
+                  <Card className="p-5 bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border-0 border-x-0 rounded-none border-y-2 border-green-500/20 shadow-sm">
                     <div className="flex items-start gap-3 mb-4">
                       <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-500/10 border-2 border-green-500/20 shrink-0">
                         <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -390,7 +395,7 @@ const MedicineScanner = () => {
                   
                   {/* Description Section */}
                   {medicineInfo.description && (
-                    <Card className="p-5 bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50 dark:from-blue-950/20 dark:via-card dark:to-purple-950/20 border-2 border-primary/10 shadow-sm">
+                    <Card className="p-5 bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50 dark:from-blue-950/20 dark:via-card dark:to-purple-950/20 border-0 border-x-0 rounded-none border-y-2 border-primary/10 shadow-sm">
                       <div className="flex items-start gap-3 mb-3">
                         <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 border-2 border-primary/20 shrink-0">
                           <Info className="w-5 h-5 text-primary" />
@@ -411,7 +416,7 @@ const MedicineScanner = () => {
                   
                   {/* Uses Section */}
                   {medicineInfo.indications && medicineInfo.indications.length > 0 && (
-                    <Card className="p-5 bg-gradient-to-br from-green-50/50 via-white to-emerald-50/50 dark:from-green-950/20 dark:via-card dark:to-emerald-950/20 border-2 border-green-500/20 shadow-sm">
+                    <Card className="p-5 bg-gradient-to-br from-green-50/50 via-white to-emerald-50/50 dark:from-green-950/20 dark:via-card dark:to-emerald-950/20 border-0 border-x-0 rounded-none border-y-2 border-green-500/20 shadow-sm">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-500/10 border-2 border-green-500/20">
                           <Heart className="w-5 h-5 text-green-600 dark:text-green-400" />
@@ -431,7 +436,7 @@ const MedicineScanner = () => {
                   
                   {/* Dosage Section */}
                   {medicineInfo.dosage && (
-                    <Card className="p-5 bg-gradient-to-br from-card to-muted/30 border-2 border-primary/10 shadow-sm">
+                    <Card className="p-5 bg-gradient-to-br from-card to-muted/30 border-0 border-x-0 rounded-none border-y-2 border-primary/10 shadow-sm">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/10 border-2 border-blue-500/20">
                           <Pill className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -471,7 +476,7 @@ const MedicineScanner = () => {
                   
                   {/* Side Effects Section */}
                   {medicineInfo.sideEffects && medicineInfo.sideEffects.length > 0 && (
-                    <Card className="p-5 bg-gradient-to-br from-orange-50/50 via-white to-red-50/50 dark:from-orange-950/20 dark:via-card dark:to-red-950/20 border-2 border-orange-500/20 shadow-sm">
+                    <Card className="p-5 bg-gradient-to-br from-orange-50/50 via-white to-red-50/50 dark:from-orange-950/20 dark:via-card dark:to-red-950/20 border-0 border-x-0 rounded-none border-y-2 border-orange-500/20 shadow-sm">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-orange-500/10 border-2 border-orange-500/20">
                           <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
@@ -491,7 +496,7 @@ const MedicineScanner = () => {
                   
                   {/* Contraindications Section */}
                   {medicineInfo.contraindications && medicineInfo.contraindications.length > 0 && (
-                    <Card className="p-5 bg-gradient-to-br from-red-50/50 via-white to-rose-50/50 dark:from-red-950/20 dark:via-card dark:to-rose-950/20 border-2 border-red-500/20 shadow-sm">
+                    <Card className="p-5 bg-gradient-to-br from-red-50/50 via-white to-rose-50/50 dark:from-red-950/20 dark:via-card dark:to-rose-950/20 border-0 border-x-0 rounded-none border-y-2 border-red-500/20 shadow-sm">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-red-500/10 border-2 border-red-500/20">
                           <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
@@ -511,7 +516,7 @@ const MedicineScanner = () => {
                   
                   {/* Warnings Section */}
                   {medicineInfo.warnings && medicineInfo.warnings.length > 0 && (
-                    <Card className="p-5 bg-gradient-to-br from-yellow-50/50 via-white to-amber-50/50 dark:from-yellow-950/20 dark:via-card dark:to-amber-950/20 border-2 border-yellow-500/20 shadow-sm">
+                    <Card className="p-5 bg-gradient-to-br from-yellow-50/50 via-white to-amber-50/50 dark:from-yellow-950/20 dark:via-card dark:to-amber-950/20 border-0 border-x-0 rounded-none border-y-2 border-yellow-500/20 shadow-sm">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-yellow-500/10 border-2 border-yellow-500/20">
                           <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
@@ -531,7 +536,7 @@ const MedicineScanner = () => {
                   
                   {/* Prescription Required Badge */}
                   {medicineInfo.isPrescriptionRequired && (
-                    <Card className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30 border-2 border-yellow-500/30 shadow-sm">
+                    <Card className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30 border-0 border-x-0 rounded-none border-y-2 border-yellow-500/30 shadow-sm">
                       <div className="flex items-center gap-3">
                         <Shield className="w-5 h-5 text-yellow-600 dark:text-yellow-400 shrink-0" />
                         <p className="font-semibold text-sm text-yellow-800 dark:text-yellow-200">
@@ -545,8 +550,8 @@ const MedicineScanner = () => {
             )}
           </div>
         )}
+        </div>
       </div>
-      </Card>
     </div>
   );
 };
