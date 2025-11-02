@@ -1,8 +1,11 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Camera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
-import { Loader2, Camera as CameraIcon, X, RotateCcw, Pill } from "lucide-react";
+import { Badge } from "./ui/badge";
+import { Loader2, Camera as CameraIcon, X, RotateCcw, Pill, Sparkles, ArrowRight, CheckCircle2, Info, AlertTriangle, Shield, Heart, XCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import apiClient, { MedicineScanResponse } from "@/lib/api";
 import { ScrollArea } from "./ui/scroll-area";
@@ -33,9 +36,12 @@ interface MedicineInfo {
 }
 
 const MedicineScanner = () => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [medicineInfo, setMedicineInfo] = useState<MedicineInfo | null>(null);
+  const [medicineId, setMedicineId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [medicineName, setMedicineName] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -115,6 +121,7 @@ const MedicineScanner = () => {
       
       if (response.status === 'success' && response.data?.medicine) {
         setMedicineInfo(response.data.medicine);
+        setMedicineId(response.data.medicine._id || null);
         setMedicineName(""); // Clear medicine name input after successful scan
         setError(null); // Clear any previous errors
         
@@ -148,10 +155,17 @@ const MedicineScanner = () => {
   const resetScanner = () => {
     setImageUrl(null);
     setMedicineInfo(null);
+    setMedicineId(null);
     setError(null);
     setMedicineName("");
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleViewFullDetails = () => {
+    if (medicineId) {
+      navigate(`/medicines/${medicineId}?scanned=true`);
     }
   };
 
@@ -162,26 +176,56 @@ const MedicineScanner = () => {
   };
 
   return (
-    <Card className="flex flex-col h-[600px] max-w-2xl mx-auto">
-      <div className="p-4 border-b bg-gradient-to-r from-primary to-secondary">
-        <h3 className="font-semibold text-white flex items-center gap-2">
-          <Pill className="w-5 h-5" />
-          Medicine Scanner
-        </h3>
-        <p className="text-sm text-white/90">Scan medicine packaging to get detailed information</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/50 to-background">
+      <Card className="flex flex-col h-[calc(100vh-80px)] max-w-2xl mx-auto shadow-[var(--shadow-medical)] border-0 backdrop-blur-sm bg-card/95">
+        <div className="p-6 bg-gradient-to-br from-primary via-secondary to-accent rounded-t-xl relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+          }}></div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/30">
+                <Pill className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="font-bold text-xl text-white flex items-center gap-2">
+                  {t("medicine.scanner", { defaultValue: "Medicine Scanner" })}
+                  {medicineInfo && (
+                    <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      {t("common.scanned", { defaultValue: "Scanned" })}
+                    </Badge>
+                  )}
+                </h3>
+                <p className="text-sm text-white/90">{t("medicine.scannerDesc", { defaultValue: "Scan medicine packaging to get detailed information" })}</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
       <div className="flex-1 p-4 flex flex-col">
         {!imageUrl ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-4">
-            <div className="p-6 rounded-full bg-primary/10 mb-4">
-              <CameraIcon className="w-12 h-12 text-primary" />
+          <div className="flex-1 flex flex-col items-center justify-center gap-6 p-8">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full blur-2xl animate-pulse"></div>
+              <div className="relative p-8 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/20 backdrop-blur-sm">
+                <CameraIcon className="w-16 h-16 text-primary animate-bounce" />
+              </div>
             </div>
-            <p className="text-center text-muted-foreground mb-6">
-              Take a photo of your medicine packaging or prescription to get detailed information
-            </p>
-            <div className="flex gap-4">
-              <Button onClick={takePicture} className="gap-2">
+            <div className="text-center space-y-2">
+              <p className="text-lg font-semibold text-foreground">
+                {t("medicine.scanTitle", { defaultValue: "Scan Your Medicine" })}
+              </p>
+              <p className="text-muted-foreground max-w-sm">
+                {t("medicine.scanDesc", { defaultValue: "Take a photo of your medicine packaging or prescription to get detailed information" })}
+              </p>
+            </div>
+            <div className="flex gap-4 w-full max-w-xs">
+              <Button 
+                onClick={takePicture} 
+                className="flex-1 bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-[var(--shadow-medical)] h-12 text-base font-semibold"
+                size="lg"
+              >
                 <CameraIcon className="w-4 h-4" />
                 Take Photo
               </Button>
@@ -198,35 +242,37 @@ const MedicineScanner = () => {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col">
-            <div className="relative mb-4">
+          <div className="flex-1 flex flex-col gap-4 p-4">
+            <Card className="relative overflow-hidden border-2 border-primary/20 shadow-lg">
               <img
                 src={imageUrl}
                 alt="Medicine"
-                className="w-full h-48 object-contain bg-muted rounded-md"
+                className="w-full h-48 object-contain bg-gradient-to-br from-muted/50 to-muted rounded-md"
               />
               <Button
                 size="icon"
                 variant="destructive"
-                className="absolute top-2 right-2 rounded-full"
+                className="absolute top-3 right-3 rounded-full shadow-lg hover:scale-110 transition-transform"
                 onClick={resetScanner}
               >
                 <X className="w-4 h-4" />
               </Button>
-            </div>
+            </Card>
             
             {!isProcessing && !medicineInfo && !error && (
-              <div className="mb-4 space-y-2">
-                <label className="text-sm font-medium">
-                  Medicine Name <span className="text-xs text-muted-foreground">(Optional - OCR will auto-detect from image)</span>
+              <Card className="p-4 bg-gradient-to-br from-muted/30 to-muted/50 border-2 border-primary/10">
+                <label className="text-sm font-semibold flex items-center gap-2 mb-2">
+                  <Pill className="w-4 h-4 text-primary" />
+                  {t("medicine.manualName", { defaultValue: "Medicine Name" })}
+                  <span className="text-xs text-muted-foreground font-normal">({t("medicine.optional", { defaultValue: "Optional - OCR will auto-detect from image" })})</span>
                 </label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  If OCR couldn't detect the medicine name, enter it manually here (e.g., "Dolo 650", "Crocin")
+                <p className="text-xs text-muted-foreground mb-3">
+                  {t("medicine.manualNameDesc", { defaultValue: "If OCR couldn't detect the medicine name, enter it manually here (e.g., \"Dolo 650\", \"Crocin\")" })}
                 </p>
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Enter medicine name if auto-detection failed (e.g., Dolo 650)"
+                    placeholder={t("medicine.namePlaceholder", { defaultValue: "Enter medicine name if auto-detection failed (e.g., Dolo 650)" })}
                     value={medicineName}
                     onChange={(e) => setMedicineName(e.target.value)}
                     onKeyDown={(e) => {
@@ -234,35 +280,56 @@ const MedicineScanner = () => {
                         processMedicineImage(imageUrl, medicineName.trim() || undefined);
                       }
                     }}
-                    className="flex-1 px-3 py-2 border rounded-md"
+                    className="flex-1 px-4 py-2 border-2 border-input/50 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-md text-sm bg-gradient-to-br from-background to-muted/30 transition-all"
                   />
                   <Button 
                     onClick={() => processMedicineImage(imageUrl!, medicineName.trim() || undefined)}
                     disabled={isProcessing}
-                    className="gap-2"
+                    className="bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-sm font-semibold"
                   >
-                    Rescan
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    {t("medicine.rescan", { defaultValue: "Rescan" })}
                   </Button>
                 </div>
-              </div>
+              </Card>
             )}
 
             {isProcessing && (
-              <div className="flex-1 flex flex-col items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-                <p className="text-muted-foreground">Extracting text from image using OCR...</p>
-                <p className="text-xs text-muted-foreground mt-2">This may take a few seconds</p>
-              </div>
+              <Card className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-primary/5 to-accent/5 border-2 border-primary/20">
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full blur-2xl animate-pulse"></div>
+                  <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-primary/10 to-accent/10 border-2 border-primary/20 flex items-center justify-center">
+                    <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                  </div>
+                </div>
+                <p className="text-lg font-semibold text-foreground mb-1">
+                  {t("medicine.processing", { defaultValue: "Processing Image..." })}
+                </p>
+                <p className="text-sm text-muted-foreground text-center max-w-xs">
+                  {t("medicine.processingDesc", { defaultValue: "Extracting text from image using OCR. This may take a few seconds." })}
+                </p>
+              </Card>
             )}
             
             {error && (
-              <div className="flex-1 flex flex-col items-center justify-center gap-4">
-                <p className="text-destructive text-center mb-2">{error}</p>
-                <div className="w-full space-y-2">
+              <Card className="flex-1 flex flex-col items-center justify-center gap-6 p-8 bg-gradient-to-br from-red-50/50 to-orange-50/50 dark:from-red-950/20 dark:to-orange-950/20 border-2 border-red-500/20">
+                <div className="relative mb-4">
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-full blur-2xl animate-pulse"></div>
+                  <div className="relative w-16 h-16 rounded-full bg-red-500/10 border-2 border-red-500/20 flex items-center justify-center">
+                    <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+                  </div>
+                </div>
+                <div className="text-center space-y-2">
+                  <p className="text-destructive font-semibold text-center">{error}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("medicine.errorDesc", { defaultValue: "You can try entering the medicine name manually" })}
+                  </p>
+                </div>
+                <div className="w-full max-w-xs space-y-3">
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      placeholder="Enter medicine name (optional)"
+                      placeholder={t("medicine.namePlaceholder", { defaultValue: "Enter medicine name (optional)" })}
                       value={medicineName}
                       onChange={(e) => setMedicineName(e.target.value)}
                       onKeyDown={(e) => {
@@ -270,107 +337,184 @@ const MedicineScanner = () => {
                           handleSearchWithName();
                         }
                       }}
-                      className="flex-1 px-3 py-2 border rounded-md"
+                      className="flex-1 px-4 py-2 border-2 border-input/50 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-md text-sm bg-gradient-to-br from-background to-muted/30 transition-all"
                     />
                     <Button 
                       onClick={handleSearchWithName} 
                       disabled={!medicineName.trim() || isProcessing}
-                      className="gap-2"
+                      className="bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-sm font-semibold"
                     >
-                      Search
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      {t("common.search", { defaultValue: "Search" })}
                     </Button>
                   </div>
+                  <Button 
+                    onClick={resetScanner} 
+                    variant="outline" 
+                    className="w-full border-2 font-semibold"
+                    size="lg"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    {t("medicine.tryAgain", { defaultValue: "Try Again" })}
+                  </Button>
                 </div>
-                <Button onClick={resetScanner} variant="outline" className="gap-2">
-                  <RotateCcw className="w-4 h-4" />
-                  Try Again
-                </Button>
-              </div>
+              </Card>
             )}
             
             {medicineInfo && (
-              <ScrollArea className="flex-1">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-xl font-bold">{medicineInfo.name}</h3>
-                    <p className="text-muted-foreground">{medicineInfo.genericName}</p>
+              <div className="flex-1 flex flex-col space-y-4 animate-fade-in">
+                <Card className="p-5 bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-950/20 dark:to-emerald-950/20 border-2 border-green-500/20 shadow-sm">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-500/10 border-2 border-green-500/20 shrink-0">
+                      <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-xl font-bold text-foreground mb-1 line-clamp-2">
+                        {medicineInfo.name}
+                      </h3>
+                      {medicineInfo.genericName && (
+                        <p className="text-muted-foreground font-medium">{medicineInfo.genericName}</p>
+                      )}
+                    </div>
                   </div>
                   
-                  <div>
-                    <h4 className="font-semibold mb-1">Description</h4>
-                    <p>{medicineInfo.description}</p>
-                    <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
-                      ⚠️ This information is for reference purposes only. Always consult a qualified healthcare professional before making any medical decisions or starting any medication.
-                    </p>
-                  </div>
+                  <Button
+                    onClick={handleViewFullDetails}
+                    className="w-full bg-gradient-to-r from-primary via-secondary to-accent hover:opacity-90 shadow-[var(--shadow-medical)] h-11 font-semibold"
+                    size="lg"
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    {t("medicine.viewFullDetails", { defaultValue: "View Full Details" })}
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </Card>
+
+                <ScrollArea className="flex-1">
+                  <div className="space-y-4 pr-4">
+                  
+                  {medicineInfo.description && (
+                    <Card className="p-4 bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50 dark:from-blue-950/20 dark:via-card dark:to-purple-950/20 border-2 border-primary/10">
+                      <div className="flex items-start gap-3 mb-3">
+                        <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                        <h4 className="font-bold text-base">{t("medicine.description", { defaultValue: "Description" })}</h4>
+                      </div>
+                      <p className="text-sm leading-relaxed text-foreground mb-3">{medicineInfo.description}</p>
+                      <div className="mt-3 pt-3 border-t border-border/50 flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          {t("medicine.disclaimer", { defaultValue: "This information is for reference purposes only. Always consult a qualified healthcare professional before making any medical decisions or starting any medication." })}
+                        </p>
+                      </div>
+                    </Card>
+                  )}
                   
                   {medicineInfo.indications && medicineInfo.indications.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold mb-1">Uses</h4>
-                      <ul className="list-disc pl-5">
+                    <Card className="p-4 bg-gradient-to-br from-green-50/50 via-white to-emerald-50/50 dark:from-green-950/20 dark:via-card dark:to-emerald-950/20 border-2 border-green-500/20">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Heart className="w-5 h-5 text-green-600 dark:text-green-400" />
+                        <h4 className="font-bold text-base">{t("medicine.uses", { defaultValue: "Uses" })}</h4>
+                      </div>
+                      <ul className="space-y-2">
                         {medicineInfo.indications.map((indication, idx) => (
-                          <li key={idx}>{indication}</li>
+                          <li key={idx} className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+                            <span className="text-sm text-foreground">{indication}</span>
+                          </li>
                         ))}
                       </ul>
-                    </div>
+                    </Card>
                   )}
                   
                   {medicineInfo.dosage && (
-                    <div>
-                      <h4 className="font-semibold mb-1">Dosage</h4>
-                      <div className="space-y-2">
+                    <Card className="p-4 bg-gradient-to-br from-card to-muted/30 border-2 border-primary/10">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Pill className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <h4 className="font-bold text-base">{t("medicine.dosage", { defaultValue: "Dosage" })}</h4>
+                      </div>
+                      <div className="space-y-3">
                         {medicineInfo.dosage.adult && (
-                          <div>
-                            <p className="font-medium">Adults:</p>
-                            <p>{medicineInfo.dosage.adult.min || 'As directed'} - {medicineInfo.dosage.adult.max || 'As directed'} {medicineInfo.dosage.adult.frequency || ''}</p>
-                          </div>
+                          <Card className="p-3 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border-2 border-blue-500/30">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></div>
+                              <p className="font-bold text-sm text-blue-700 dark:text-blue-300">
+                                {t("medicine.adults", { defaultValue: "Adults" })}
+                              </p>
+                            </div>
+                            <p className="text-xs text-blue-900 dark:text-blue-100 font-medium pl-4">
+                              {medicineInfo.dosage.adult.min || 'As directed'} - {medicineInfo.dosage.adult.max || 'As directed'} {medicineInfo.dosage.adult.frequency || ''}
+                            </p>
+                          </Card>
                         )}
                         {medicineInfo.dosage.pediatric && (
-                          <div>
-                            <p className="font-medium">Children:</p>
-                            <p>{medicineInfo.dosage.pediatric.min || 'Consult doctor'} - {medicineInfo.dosage.pediatric.max || 'Consult doctor'} {medicineInfo.dosage.pediatric.frequency || ''}</p>
-                          </div>
+                          <Card className="p-3 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/30 border-2 border-green-500/30">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="w-2 h-2 rounded-full bg-green-600 animate-pulse"></div>
+                              <p className="font-bold text-sm text-green-700 dark:text-green-300">
+                                {t("medicine.children", { defaultValue: "Children" })}
+                              </p>
+                            </div>
+                            <p className="text-xs text-green-900 dark:text-green-100 font-medium pl-4">
+                              {medicineInfo.dosage.pediatric.min || 'Consult doctor'} - {medicineInfo.dosage.pediatric.max || 'Consult doctor'} {medicineInfo.dosage.pediatric.frequency || ''}
+                            </p>
+                          </Card>
                         )}
                       </div>
-                    </div>
+                    </Card>
                   )}
                   
                   {medicineInfo.sideEffects && medicineInfo.sideEffects.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold mb-1">Side Effects</h4>
-                      <ul className="list-disc pl-5">
+                    <Card className="p-4 bg-gradient-to-br from-orange-50/50 via-white to-red-50/50 dark:from-orange-950/20 dark:via-card dark:to-red-950/20 border-2 border-orange-500/20">
+                      <div className="flex items-center gap-3 mb-3">
+                        <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                        <h4 className="font-bold text-base">{t("medicine.sideEffects", { defaultValue: "Side Effects" })}</h4>
+                      </div>
+                      <ul className="space-y-2">
                         {medicineInfo.sideEffects.map((effect, idx) => (
-                          <li key={idx}>{effect}</li>
+                          <li key={idx} className="flex items-start gap-2">
+                            <XCircle className="w-4 h-4 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" />
+                            <span className="text-sm text-foreground">{effect}</span>
+                          </li>
                         ))}
                       </ul>
-                    </div>
+                    </Card>
                   )}
                   
                   {medicineInfo.contraindications && medicineInfo.contraindications.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold mb-1">Contraindications</h4>
-                      <ul className="list-disc pl-5">
+                    <Card className="p-4 bg-gradient-to-br from-red-50/50 via-white to-rose-50/50 dark:from-red-950/20 dark:via-card dark:to-rose-950/20 border-2 border-red-500/20">
+                      <div className="flex items-center gap-3 mb-3">
+                        <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                        <h4 className="font-bold text-base">{t("medicine.contraindications", { defaultValue: "Contraindications" })}</h4>
+                      </div>
+                      <ul className="space-y-2">
                         {medicineInfo.contraindications.map((item, idx) => (
-                          <li key={idx}>{item}</li>
+                          <li key={idx} className="flex items-start gap-2">
+                            <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                            <span className="text-sm text-foreground">{item}</span>
+                          </li>
                         ))}
                       </ul>
-                    </div>
+                    </Card>
                   )}
                   
                   {medicineInfo.isPrescriptionRequired && (
-                    <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-md">
-                      <p className="font-medium text-yellow-800 dark:text-yellow-200">
-                        This medicine requires a prescription
-                      </p>
-                    </div>
+                    <Card className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30 border-2 border-yellow-500/30">
+                      <div className="flex items-center gap-3">
+                        <Shield className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                        <p className="font-semibold text-sm text-yellow-800 dark:text-yellow-200">
+                          {t("medicine.prescriptionRequired", { defaultValue: "This medicine requires a prescription" })}
+                        </p>
+                      </div>
+                    </Card>
                   )}
-                </div>
-              </ScrollArea>
+                  </div>
+                </ScrollArea>
+              </div>
             )}
           </div>
         )}
       </div>
-    </Card>
+      </Card>
+    </div>
   );
 };
 

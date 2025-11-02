@@ -240,6 +240,17 @@ const MobileOTPLogin: React.FC<MobileOTPLoginProps> = ({ onSuccess }) => {
             </div>
 
             <div className={`w-full max-w-md transition-all duration-500 relative z-10 ${animateStep ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+                {/* App Name Header */}
+                <div className="text-center mb-6 animate-fade-in">
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent mb-1 flex items-center justify-center gap-2">
+                        <Sparkles className="w-6 h-6 text-primary animate-pulse" />
+                        {t('app.name', { defaultValue: 'Swasthya Vaani' })}
+                    </h1>
+                    <p className="text-sm text-muted-foreground font-medium">
+                        {t('app.tagline', { defaultValue: 'Your Health Companion' })}
+                    </p>
+                </div>
+
                 <Card className="border-0 shadow-[var(--shadow-medical)] backdrop-blur-sm bg-card/95 animate-fade-in">
                     {/* Gradient Header */}
                     <div className="bg-gradient-to-br from-primary via-secondary to-accent p-6 pt-8 rounded-t-xl relative overflow-hidden">
@@ -254,8 +265,22 @@ const MobileOTPLogin: React.FC<MobileOTPLoginProps> = ({ onSuccess }) => {
                             
                             <div>
                                 <CardTitle className="text-2xl font-bold text-white mb-2 flex items-center justify-center gap-2">
-                                    <Sparkles className="w-5 h-5 animate-spin" />
-                                    {t('login.mobileLogin', { defaultValue: 'Mobile Login' })}
+                                    {step === 'phone' ? (
+                                        <>
+                                            <Phone className="w-5 h-5" />
+                                            {t('login.mobileLogin', { defaultValue: 'Mobile Login' })}
+                                        </>
+                                    ) : step === 'otp' ? (
+                                        <>
+                                            <MessageSquare className="w-5 h-5" />
+                                            {t('login.enterOTPField', { defaultValue: 'Enter OTP' })}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <User className="w-5 h-5" />
+                                            {t('login.completeRegistration', { defaultValue: 'Complete Registration' })}
+                                        </>
+                                    )}
                                 </CardTitle>
                                 <CardDescription className="text-white/90 text-base">
                                     {step === 'phone' && t('login.enterPhone', { defaultValue: 'Enter your mobile number to get started' })}
