@@ -42,7 +42,7 @@ const sendOTPviaSMS = async (phone, otpCode) => {
         console.log(`📤 Sending SMS from ${process.env.TWILIO_PHONE_NUMBER} to ${phone}`);
         
         const message = await twilioClient.messages.create({
-            body: `Your Swasthya Vaani verification code is: ${otpCode}. Valid for 2 hours.`,
+            body: `Your Swasthya Vaani verification code is: ${otpCode}. Valid for 10 minutes.`,
             from: process.env.TWILIO_PHONE_NUMBER,
             to: phone
         });
@@ -142,7 +142,7 @@ router.post('/send-otp', [
             message: smsSent ? 'OTP sent successfully' : 'OTP generated (SMS not sent in dev)',
             data: {
                 phone,
-                expiresIn: '2 hours',
+                expiresIn: '10 minutes',
                 smsSent,
                 // Include OTP in development mode for testing
                 otp: process.env.NODE_ENV === 'development' ? otp.code : undefined,
@@ -295,7 +295,7 @@ router.post('/resend-otp', [
             message: smsSent ? 'OTP resent successfully' : 'OTP generated (SMS not sent in dev)',
             data: {
                 phone,
-                expiresIn: '2 hours',
+                expiresIn: '10 minutes',
                 smsSent,
                 // Remove this in production
                 otp: process.env.NODE_ENV === 'development' ? otp.code : undefined,
