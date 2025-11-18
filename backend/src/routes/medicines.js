@@ -68,7 +68,7 @@ router.get('/', [
                     });
                 }
                 
-                const translatedMedicine = getTranslatedMedicine(medicine, lang);
+                const translatedMedicine = await getTranslatedMedicine(medicine, lang);
                 return res.json({
                     status: 'success',
                     data: {
@@ -106,7 +106,7 @@ router.get('/', [
             .limit(parseInt(limit));
 
         const total = await Medicine.countDocuments(query);
-        const translatedMedicines = getTranslatedMedicines(medicines, lang);
+        const translatedMedicines = await getTranslatedMedicines(medicines, lang);
 
         res.json({
             status: 'success',
@@ -156,7 +156,7 @@ router.get('/:id', async (req, res, next) => {
             });
         }
 
-        const translatedMedicine = getTranslatedMedicine(medicine, lang);
+        const translatedMedicine = await getTranslatedMedicine(medicine, lang);
         res.json({
             status: 'success',
             data: { medicine: translatedMedicine },
