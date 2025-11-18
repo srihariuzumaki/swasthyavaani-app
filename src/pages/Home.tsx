@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Camera, Mic, Activity, Pill, Heart, TrendingUp, Bot, LogOut, X } from "lucide-react";
+import { Search, Camera, Mic, Activity, Pill, Heart, TrendingUp, Bot, LogOut, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { LogoLoader } from "@/components/ui/logo-loader";
 import AIAssistant from "@/components/AIAssistant";
@@ -49,8 +49,46 @@ const Home = () => {
     }
   }, []);
 
-  const handleVoiceSearch = () => {
-    toast.info("Voice search coming soon!");
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+
+  const handleVoiceSearch = async () => {
+    try {
+      if (isVoiceRecording) {
+        // Stop recording
+        setIsVoiceRecording(false);
+        setIsProcessingVoice(true);
+        
+        const voiceService = (await import('@/lib/voiceService')).default;
+        const audioBlob = await voiceService.stopRecording();
+        
+        // Convert speech to text
+        const transcribedText = await voiceService.speechToText(audioBlob, language);
+        
+        if (transcribedText) {
+          setSearchQuery(transcribedText);
+          setIsProcessingVoice(false);
+          // Auto-search after transcription
+          setTimeout(() => {
+            handleSearch();
+          }, 300);
+        } else {
+          setIsProcessingVoice(false);
+          toast.error("Could not understand speech. Please try again.");
+        }
+      } else {
+        // Start recording
+        setIsVoiceRecording(true);
+        const voiceService = (await import('@/lib/voiceService')).default;
+        await voiceService.startRecording();
+        toast.info("Listening... Speak the medicine name");
+      }
+    } catch (error: any) {
+      console.error('Voice search error:', error);
+      setIsVoiceRecording(false);
+      setIsProcessingVoice(false);
+      toast.error(error.message || "Voice search failed. Please try typing instead.");
+    }
   };
 
   // Update the handleCameraSearch function in Home.tsx
@@ -215,9 +253,18 @@ const Home = () => {
               size="icon"
               variant="ghost"
               onClick={handleVoiceSearch}
-              className="rounded-full hover:bg-primary/10"
+              disabled={isProcessingVoice}
+              className={`rounded-full hover:bg-primary/10 ${
+                isVoiceRecording ? 'bg-red-500/20 animate-pulse' : ''
+              }`}
             >
-              <Mic className="w-5 h-5 text-primary" />
+              {isVoiceRecording ? (
+                <Mic className="w-5 h-5 text-red-500" />
+              ) : isProcessingVoice ? (
+                <Loader2 className="w-5 h-5 text-primary animate-spin" />
+              ) : (
+                <Mic className="w-5 h-5 text-primary" />
+              )}
             </Button>
             <Button
               size="icon"

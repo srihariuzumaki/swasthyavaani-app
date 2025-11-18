@@ -15,7 +15,9 @@ import {
   Info,
   CheckCircle2,
   XCircle,
-  Sparkles
+  Sparkles,
+  Volume2,
+  VolumeX
 } from "lucide-react";
 import { LogoLoader } from "@/components/ui/logo-loader";
 import apiClient from "@/lib/api";
@@ -32,6 +34,54 @@ const MedicineDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isScanned, setIsScanned] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // Voice output handler
+  const handleVoiceOutput = async () => {
+    if (!medicine) return;
+
+    try {
+      if (isSpeaking) {
+        // Stop speaking
+        const voiceService = (await import('@/lib/voiceService')).default;
+        voiceService.stopSpeaking();
+        setIsSpeaking(false);
+      } else {
+        // Start speaking
+        setIsSpeaking(true);
+        const voiceService = (await import('@/lib/voiceService')).default;
+        
+        // Build text to speak
+        let textToSpeak = `${medicine.name}. `;
+        if (medicine.genericName) {
+          textToSpeak += `Generic name: ${medicine.genericName}. `;
+        }
+        if (medicine.description) {
+          textToSpeak += `${medicine.description}. `;
+        }
+        if (medicine.indications && medicine.indications.length > 0) {
+          textToSpeak += `Uses: ${medicine.indications.join(', ')}. `;
+        }
+        if (medicine.dosage?.adult) {
+          textToSpeak += `Dosage for adults: ${medicine.dosage.adult.min || 'As directed'} to ${medicine.dosage.adult.max || 'As directed'}. `;
+        }
+        if (medicine.sideEffects && medicine.sideEffects.length > 0) {
+          textToSpeak += `Side effects: ${medicine.sideEffects.slice(0, 3).join(', ')}. `;
+        }
+        textToSpeak += `Please consult a doctor before taking this medicine.`;
+
+        await voiceService.textToSpeech(textToSpeak, language);
+        
+        // Reset speaking state after a delay (browser TTS doesn't have onend callback)
+        setTimeout(() => {
+          setIsSpeaking(false);
+        }, 5000);
+      }
+    } catch (error) {
+      console.error('Voice output error:', error);
+      setIsSpeaking(false);
+    }
+  };
 
   useEffect(() => {
     const fetchMedicine = async () => {
@@ -134,6 +184,20 @@ const MedicineDetail = () => {
               </div>
               <p className="text-sm text-white/90">{t("medicine.detailedInfo", { defaultValue: "Detailed information about this medicine" })}</p>
             </div>
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleVoiceOutput}
+              className="text-white hover:bg-white/20 rounded-full backdrop-blur-sm shrink-0"
+              title={isSpeaking ? "Stop reading" : "Read aloud"}
+            >
+              {isSpeaking ? (
+                <VolumeX className="w-5 h-5" />
+              ) : (
+                <Volume2 className="w-5 h-5" />
+              )}
+            </Button>
           </div>
         </div>
       </div>

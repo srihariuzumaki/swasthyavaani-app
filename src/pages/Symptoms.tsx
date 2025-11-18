@@ -3,13 +3,17 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, ChevronRight, AlertCircle } from "lucide-react";
+import { X, ChevronRight, AlertCircle, Mic, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Symptoms = () => {
   const { t } = useTranslation();
+  const { language } = useLanguage();
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
 
   const commonSymptoms = [
     t("symptoms.headache", { defaultValue: "Headache" }),
@@ -47,6 +51,56 @@ const Symptoms = () => {
   const handleReset = () => {
     setSelectedSymptoms([]);
     setShowResults(false);
+  };
+
+  // Voice input handler for symptoms
+  const handleVoiceInput = async () => {
+    try {
+      if (isVoiceRecording) {
+        // Stop recording
+        setIsVoiceRecording(false);
+        setIsProcessingVoice(true);
+        
+        const voiceService = (await import('@/lib/voiceService')).default;
+        const audioBlob = await voiceService.stopRecording();
+        
+        // Convert speech to text
+        const transcribedText = await voiceService.speechToText(audioBlob, language);
+        
+        if (transcribedText) {
+          setIsProcessingVoice(false);
+          
+          // Try to match transcribed text with common symptoms
+          const matchedSymptom = commonSymptoms.find(symptom => 
+            symptom.toLowerCase().includes(transcribedText.toLowerCase()) ||
+            transcribedText.toLowerCase().includes(symptom.toLowerCase())
+          );
+          
+          if (matchedSymptom && !selectedSymptoms.includes(matchedSymptom)) {
+            toggleSymptom(matchedSymptom);
+            toast.success(`Added: ${matchedSymptom}`);
+          } else if (matchedSymptom) {
+            toast.info(`${matchedSymptom} is already selected`);
+          } else {
+            toast.info(`Could not match "${transcribedText}" with symptoms. Please select manually.`);
+          }
+        } else {
+          setIsProcessingVoice(false);
+          toast.error("Could not understand speech. Please try again.");
+        }
+      } else {
+        // Start recording
+        setIsVoiceRecording(true);
+        const voiceService = (await import('@/lib/voiceService')).default;
+        await voiceService.startRecording();
+        toast.info("Listening... Speak a symptom name");
+      }
+    } catch (error: any) {
+      console.error('Voice input error:', error);
+      setIsVoiceRecording(false);
+      setIsProcessingVoice(false);
+      toast.error(error.message || "Voice input failed. Please try selecting manually.");
+    }
   };
 
   return (
@@ -94,7 +148,33 @@ const Symptoms = () => {
         {/* Symptom Selection */}
         {!showResults && (
           <>
-            <h2 className="text-lg font-semibold mb-4">{t("symptoms.commonSymptoms", { defaultValue: "Common Symptoms" })}</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">{t("symptoms.commonSymptoms", { defaultValue: "Common Symptoms" })}</h2>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleVoiceInput}
+                disabled={isProcessingVoice}
+                className={`${isVoiceRecording ? 'bg-red-500/20 border-red-500 animate-pulse' : ''}`}
+              >
+                {isVoiceRecording ? (
+                  <>
+                    <Mic className="w-4 h-4 mr-2 text-red-500" />
+                    Recording...
+                  </>
+                ) : isProcessingVoice ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-4 h-4 mr-2" />
+                    Voice Input
+                  </>
+                )}
+              </Button>
+            </div>
             <div className="grid grid-cols-2 gap-3 mb-6">
               {commonSymptoms.map((symptom) => (
                 <Button

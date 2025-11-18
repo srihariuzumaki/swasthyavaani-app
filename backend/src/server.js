@@ -12,6 +12,7 @@ import userRoutes from './routes/users.js';
 import reminderRoutes from './routes/reminders.js';
 import medicineRoutes from './routes/medicines.js';
 import symptomRoutes from './routes/symptoms.js';
+import voiceRoutes from './routes/voice.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 // Load environment variables
@@ -79,6 +80,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/medicines', medicineRoutes);
 app.use('/api/symptoms', symptomRoutes);
+app.use('/api/voice', voiceRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
