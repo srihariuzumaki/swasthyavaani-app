@@ -1,4 +1,6 @@
-import translate from '@vitalets/google-translate-api';
+import translatePkg from '@vitalets/google-translate-api';
+
+const translate = (translatePkg?.default || translatePkg);
 
 const supportedLanguages = ['en', 'hi', 'ta', 'te', 'bn', 'mr', 'gu', 'kn'];
 const translationCache = new Map();
