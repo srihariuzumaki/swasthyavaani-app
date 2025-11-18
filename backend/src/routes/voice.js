@@ -77,7 +77,8 @@ router.post('/speech-to-text', [
       });
 
       if (!sarvamResponse.ok) {
-        throw new Error(`Sarvam API request failed with status ${sarvamResponse.status}`);
+        const errorText = await sarvamResponse.text().catch(() => '');
+        throw new Error(`Sarvam API request failed with status ${sarvamResponse.status}: ${errorText}`);
       }
 
       const sarvamData = await sarvamResponse.json();
