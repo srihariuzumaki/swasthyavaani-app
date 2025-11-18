@@ -30,6 +30,7 @@ import { LogoLoader } from "@/components/ui/logo-loader";
 import apiClient from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
 import BottomNav from "@/components/BottomNav";
+import voiceService from "@/lib/voiceService";
 
 const DEFAULT_VOICE_BY_LANGUAGE: Record<string, string> = {
   "en": "anushka",
@@ -87,56 +88,15 @@ const MedicineDetail = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<string>(() => getStoredVoice(language));
 
-  // Voice output handler
-  const handleVoiceOutput = async () => {
-    if (!medicine) return;
-
-    try {
-      if (isSpeaking) {
-        // Stop speaking
-        const voiceService = (await import('@/lib/voiceService')).default;
-        voiceService.stopSpeaking();
-        setIsSpeaking(false);
-      } else {
-        // Start speaking
-        setIsSpeaking(true);
-        const voiceService = (await import('@/lib/voiceService')).default;
-        
-        // Build text to speak
-        let textToSpeak = `${medicine.name}. `;
-        if (medicine.genericName) {
-          textToSpeak += `Generic name: ${medicine.genericName}. `;
-        }
-        if (medicine.description) {
-          textToSpeak += `${medicine.description}. `;
-        }
-        if (medicine.indications && medicine.indications.length > 0) {
-          textToSpeak += `Uses: ${medicine.indications.join(', ')}. `;
-        }
-        if (medicine.dosage?.adult) {
-          textToSpeak += `Dosage for adults: ${medicine.dosage.adult.min || 'As directed'} to ${medicine.dosage.adult.max || 'As directed'}. `;
-        }
-        if (medicine.sideEffects && medicine.sideEffects.length > 0) {
-          textToSpeak += `Side effects: ${medicine.sideEffects.slice(0, 3).join(', ')}. `;
-        }
-        textToSpeak += `Please consult a doctor before taking this medicine.`;
-
-        await voiceService.textToSpeech(textToSpeak, language, selectedVoice);
-        
-        // Reset speaking state after a delay (browser TTS doesn't have onend callback)
-        setTimeout(() => {
-          setIsSpeaking(false);
-        }, 5000);
-      }
-    } catch (error) {
-      console.error('Voice output error:', error);
-      setIsSpeaking(false);
-    }
-  };
-
   useEffect(() => {
     setSelectedVoice(getStoredVoice(language));
   }, [language]);
+
+  useEffect(() => {
+    return () => {
+      voiceService.stopSpeaking();
+    };
+  }, []);
 
   const handleVoiceChange = (value: string) => {
     setSelectedVoice(value);
@@ -203,6 +163,53 @@ const MedicineDetail = () => {
       </div>
     );
   }
+
+  const translationData = medicine.translations?.[language];
+  const localizedName = translationData?.name || medicine.name;
+  const localizedGenericName = translationData?.genericName || medicine.genericName;
+  const localizedDescription = translationData?.description || medicine.description;
+  const translatedIndications = medicine.multilingualIndications?.[language];
+  const localizedIndications = translatedIndications && translatedIndications.length > 0
+    ? translatedIndications
+    : medicine.indications || [];
+
+  const handleVoiceOutput = async () => {
+    if (!medicine) return;
+
+    if (isSpeaking) {
+      voiceService.stopSpeaking();
+      setIsSpeaking(false);
+      return;
+    }
+
+    setIsSpeaking(true);
+
+    try {
+      let textToSpeak = `${localizedName}. `;
+      if (localizedGenericName) {
+        textToSpeak += `Generic name: ${localizedGenericName}. `;
+      }
+      if (localizedDescription) {
+        textToSpeak += `${localizedDescription}. `;
+      }
+      if (localizedIndications.length > 0) {
+        textToSpeak += `Uses: ${localizedIndications.join(', ')}. `;
+      }
+      if (medicine.dosage?.adult) {
+        textToSpeak += `Dosage for adults: ${medicine.dosage.adult.min || 'As directed'} to ${medicine.dosage.adult.max || 'As directed'}. `;
+      }
+      if (medicine.sideEffects && medicine.sideEffects.length > 0) {
+        textToSpeak += `Side effects: ${medicine.sideEffects.slice(0, 3).join(', ')}. `;
+      }
+      textToSpeak += `Please consult a doctor before taking this medicine.`;
+
+      await voiceService.textToSpeech(textToSpeak, language, selectedVoice);
+    } catch (error) {
+      console.error('Voice output error:', error);
+    } finally {
+      setIsSpeaking(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/50 to-background pb-20 overflow-x-hidden">
@@ -289,10 +296,10 @@ const MedicineDetail = () => {
             <Card className="p-4 sm:p-5 bg-gradient-to-br from-card to-muted/30 border-0 border-x-0 rounded-none shadow-[var(--shadow-medical)] hover:shadow-lg transition-shadow">
               <div className="space-y-3">
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  {medicine.name}
+                  {localizedName}
                 </h2>
-                {medicine.genericName && (
-                  <p className="text-base text-muted-foreground font-medium">{medicine.genericName}</p>
+                {localizedGenericName && (
+                  <p className="text-base text-muted-foreground font-medium">{localizedGenericName}</p>
                 )}
                 <div className="flex flex-wrap gap-2 mt-3">
                   {medicine.category && (
@@ -312,7 +319,7 @@ const MedicineDetail = () => {
             </Card>
 
             {/* Description Section */}
-            {medicine.description && (
+            {localizedDescription && (
               <Card className="p-4 sm:p-5 bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50 dark:from-blue-950/20 dark:via-card dark:to-purple-950/20 border-0 border-x-0 rounded-none shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-start gap-3 mb-4">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 border-2 border-primary/20 shrink-0">
@@ -323,7 +330,7 @@ const MedicineDetail = () => {
                       {t("medicine.description", { defaultValue: "Description" })}
                     </h3>
                     <p className="text-sm leading-relaxed text-foreground">
-                      {medicine.description}
+                      {localizedDescription}
                     </p>
                   </div>
                 </div>
@@ -339,7 +346,7 @@ const MedicineDetail = () => {
             )}
 
             {/* Uses Section */}
-            {medicine.indications && medicine.indications.length > 0 && (
+            {localizedIndications.length > 0 && (
               <Card className="p-4 sm:p-5 bg-gradient-to-br from-green-50/50 via-white to-emerald-50/50 dark:from-green-950/20 dark:via-card dark:to-emerald-950/20 border-0 border-x-0 rounded-none shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-500/10 border-2 border-green-500/20">
@@ -350,7 +357,7 @@ const MedicineDetail = () => {
                   </h3>
                 </div>
                 <ul className="space-y-2.5">
-                  {medicine.indications.map((indication: string, idx: number) => (
+                  {localizedIndications.map((indication: string, idx: number) => (
                     <li key={idx} className="flex items-start gap-3 group">
                       <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                       <span className="text-sm leading-relaxed text-foreground flex-1">{indication}</span>

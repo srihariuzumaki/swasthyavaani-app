@@ -26,6 +26,10 @@ class VoiceService {
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: Blob[] = [];
   private isNativeRecording = false;
+  private currentAudio: HTMLAudioElement | null = null;
+  private currentAudioUrl: string | null = null;
+  private audioResolve: (() => void) | null = null;
+  private browserSpeechResolver: (() => void) | null = null;
 
   // Convert audio blob to base64
   private async audioToBase64(audioBlob: Blob): Promise<string> {
@@ -38,6 +42,25 @@ class VoiceService {
       reader.onerror = reject;
       reader.readAsDataURL(audioBlob);
     });
+  }
+
+  private stopCurrentAudio(resolvePromise = false) {
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio.currentTime = 0;
+      this.currentAudio = null;
+    }
+
+    if (this.currentAudioUrl) {
+      URL.revokeObjectURL(this.currentAudioUrl);
+      this.currentAudioUrl = null;
+    }
+
+    if (resolvePromise && this.audioResolve) {
+      this.audioResolve();
+    }
+
+    this.audioResolve = null;
   }
 
   private base64ToBlob(base64: string, contentType: string): Blob {
@@ -212,66 +235,107 @@ class VoiceService {
       // If we get audio blob, play it
       if (contentType && contentType.includes('audio')) {
         const audioBlob = await response.blob();
-        this.playAudio(audioBlob);
+        await this.playAudio(audioBlob);
+        return;
       } else if (contentType && contentType.includes('application/json')) {
         const data = await response.json().catch(() => null);
         if (data?.note?.includes('fallback') || data?.message?.includes('fallback')) {
-          this.speakWithBrowserTTS(text, language);
+          await this.speakWithBrowserTTS(text, language);
           return;
         }
-        this.speakWithBrowserTTS(text, language);
-      } else {
-        this.speakWithBrowserTTS(text, language);
       }
+
+      await this.speakWithBrowserTTS(text, language);
     } catch (error) {
       console.error('Error in text to speech:', error);
       // Fallback to browser TTS
-      this.speakWithBrowserTTS(text, language);
+      await this.speakWithBrowserTTS(text, language);
     }
   }
 
   // Browser TTS fallback
-  private speakWithBrowserTTS(text: string, language: string): void {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      
-      // Map language codes to browser TTS codes
-      const browserLangMap: Record<string, string> = {
-        'en': 'en-IN',
-        'hi': 'hi-IN',
-        'ta': 'ta-IN',
-        'te': 'te-IN',
-        'bn': 'bn-IN',
-        'mr': 'mr-IN',
-        'gu': 'gu-IN',
-        'kn': 'kn-IN',
-      };
-      
-      utterance.lang = browserLangMap[language] || 'en-IN';
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      
-      window.speechSynthesis.speak(utterance);
-    }
+  private speakWithBrowserTTS(text: string, language: string): Promise<void> {
+    return new Promise((resolve) => {
+      if ('speechSynthesis' in window) {
+        this.stopCurrentAudio();
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Map language codes to browser TTS codes
+        const browserLangMap: Record<string, string> = {
+          'en': 'en-IN',
+          'hi': 'hi-IN',
+          'ta': 'ta-IN',
+          'te': 'te-IN',
+          'bn': 'bn-IN',
+          'mr': 'mr-IN',
+          'gu': 'gu-IN',
+          'kn': 'kn-IN',
+        };
+        
+        utterance.lang = browserLangMap[language] || 'en-IN';
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+
+        this.browserSpeechResolver = resolve;
+
+        utterance.onend = () => {
+          this.browserSpeechResolver?.();
+          this.browserSpeechResolver = null;
+        };
+
+        utterance.onerror = () => {
+          this.browserSpeechResolver?.();
+          this.browserSpeechResolver = null;
+        };
+        
+        window.speechSynthesis.speak(utterance);
+      } else {
+        resolve();
+      }
+    });
   }
 
   // Stop speaking
   stopSpeaking(): void {
+    this.stopCurrentAudio(true);
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
+    }
+    if (this.browserSpeechResolver) {
+      this.browserSpeechResolver();
+      this.browserSpeechResolver = null;
     }
   }
 
   // Play audio blob
-  private playAudio(audioBlob: Blob): void {
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-    audio.play();
-    
-    audio.onended = () => {
-      URL.revokeObjectURL(audioUrl);
-    };
+  private playAudio(audioBlob: Blob): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.stopCurrentAudio();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      this.currentAudio = audio;
+      this.currentAudioUrl = audioUrl;
+      this.audioResolve = resolve;
+
+      audio.onended = () => {
+        this.stopCurrentAudio();
+        resolve();
+      };
+
+      audio.onerror = (event) => {
+        console.error('Audio playback error:', event);
+        this.stopCurrentAudio();
+        reject(new Error('Audio playback failed'));
+      };
+
+      audio.play().catch((error) => {
+        console.error('Failed to start audio playback:', error);
+        this.stopCurrentAudio();
+        reject(error);
+      });
+    });
   }
 
   // Check if currently recording
