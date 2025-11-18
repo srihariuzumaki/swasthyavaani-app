@@ -150,6 +150,8 @@ class VoiceService {
     try {
       const base64Audio = await this.audioToBase64(audioBlob);
       const sarvamLang = LANGUAGE_MAP[language] || LANGUAGE_MAP['en'];
+      const mimeType = audioBlob.type || 'audio/aac';
+      const format = mimeType.split('/')[1] || 'aac';
 
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://swasthyavaani-app.vercel.app/api';
       const response = await fetch(`${API_BASE_URL}/voice/speech-to-text`, {
@@ -160,7 +162,7 @@ class VoiceService {
         body: JSON.stringify({
           audio: base64Audio,
           language: sarvamLang,
-          format: 'webm'
+          format,
         }),
       });
 

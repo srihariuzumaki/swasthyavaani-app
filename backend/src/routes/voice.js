@@ -30,7 +30,7 @@ router.post('/speech-to-text', [
     .withMessage('Language must be a string'),
 ], validateRequest, async (req, res, next) => {
   try {
-    const { audio, language = 'en-IN' } = req.body;
+    const { audio, language = 'en-IN', format } = req.body;
     const apiKey = process.env.SARVAM_API_KEY;
 
     // Simple mock texts used for demo / fallback
@@ -54,6 +54,7 @@ router.post('/speech-to-text', [
     // Try real Sarvam API, but gracefully fall back to mock on any failure
     try {
       const sarvamLang = SARVAM_LANGUAGE_MAP[language] || 'en';
+      const inputFormat = (format || 'aac').toLowerCase();
 
       const sarvamResponse = await fetch('https://api.sarvam.ai/v1/speech-to-text', {
         method: 'POST',
@@ -64,7 +65,7 @@ router.post('/speech-to-text', [
         body: JSON.stringify({
           audio,
           language: sarvamLang,
-          format: 'webm',
+          format: inputFormat,
         }),
       });
 
