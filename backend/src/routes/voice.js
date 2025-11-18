@@ -66,14 +66,18 @@ router.post('/speech-to-text', [
         filename: fileName,
         contentType,
       });
+      const formBuffer = formData.getBuffer();
+      const formHeaders = formData.getHeaders();
+      const contentLength = formBuffer.length;
 
       const sarvamResponse = await fetch('https://api.sarvam.ai/speech-to-text', {
         method: 'POST',
         headers: {
           'api-subscription-key': apiKey,
-          ...formData.getHeaders(),
+          ...formHeaders,
+          'Content-Length': contentLength.toString(),
         },
-        body: formData,
+        body: formBuffer,
       });
 
       if (!sarvamResponse.ok) {
