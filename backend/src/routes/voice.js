@@ -1,20 +1,20 @@
 import express from 'express';
 import { body } from 'express-validator';
+import FormData from 'form-data';
 import { validateRequest } from '../utils/validation.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Map language codes to Sarvam API format
-const SARVAM_LANGUAGE_MAP = {
-  'en-IN': 'en',
-  'hi-IN': 'hi',
-  'ta-IN': 'ta',
-  'te-IN': 'te',
-  'bn-IN': 'bn',
-  'mr-IN': 'mr',
-  'gu-IN': 'gu',
-  'kn-IN': 'kn',
+const LANGUAGE_CODE_MAP = {
+  'en': 'en-IN',
+  'hi': 'hi-IN',
+  'ta': 'ta-IN',
+  'te': 'te-IN',
+  'bn': 'bn-IN',
+  'mr': 'mr-IN',
+  'gu': 'gu-IN',
+  'kn': 'kn-IN',
 };
 
 // @route   POST /api/voice/speech-to-text
@@ -53,20 +53,27 @@ router.post('/speech-to-text', [
 
     // Try real Sarvam API, but gracefully fall back to mock on any failure
     try {
-      const sarvamLang = SARVAM_LANGUAGE_MAP[language] || 'en';
+      const normalizedLanguage = LANGUAGE_CODE_MAP[language] || language || 'en-IN';
       const inputFormat = (format || 'aac').toLowerCase();
+      const contentType = inputFormat.includes('/') ? inputFormat : `audio/${inputFormat}`;
+      const fileName = `audio.${inputFormat.replace(/[^a-z0-9]/gi, '') || 'aac'}`;
 
-      const sarvamResponse = await fetch('https://api.sarvam.ai/v1/speech-to-text', {
+      const audioBuffer = Buffer.from(audio, 'base64');
+      const formData = new FormData();
+      formData.append('model', 'saarika:v2.5');
+      formData.append('language_code', normalizedLanguage);
+      formData.append('file', audioBuffer, {
+        filename: fileName,
+        contentType,
+      });
+
+      const sarvamResponse = await fetch('https://api.sarvam.ai/speech-to-text', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
+          'api-subscription-key': apiKey,
+          ...formData.getHeaders(),
         },
-        body: JSON.stringify({
-          audio,
-          language: sarvamLang,
-          format: inputFormat,
-        }),
+        body: formData,
       });
 
       if (!sarvamResponse.ok) {
@@ -77,8 +84,8 @@ router.post('/speech-to-text', [
 
       return res.status(200).json({
         status: 'success',
-        text: sarvamData.text || sarvamData.transcript || '',
-        language,
+        text: sarvamData.transcript || sarvamData.text || '',
+        language: sarvamData.language_code || normalizedLanguage,
       });
     } catch (sarvamError) {
       console.error('Sarvam API failed, falling back to mock text:', sarvamError);
