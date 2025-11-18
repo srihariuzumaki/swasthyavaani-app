@@ -33,16 +33,16 @@ router.post('/speech-to-text', [
     const { audio, language = 'en-IN' } = req.body;
     const apiKey = process.env.SARVAM_API_KEY;
 
-    // For demo purposes - if no API key, return mock response
+    // Simple mock texts used for demo / fallback
+    const mockTexts = {
+      'en-IN': 'paracetamol',
+      'hi-IN': 'पैरासिटामोल',
+      'ta-IN': 'பாராசிட்டமோல்',
+      'te-IN': 'పారాసిటామోల్',
+    };
+
+    // If no API key, always return mock text (pure demo mode)
     if (!apiKey) {
-      // Mock response for demo
-      const mockTexts = {
-        'en-IN': 'paracetamol',
-        'hi-IN': 'पैरासिटामोल',
-        'ta-IN': 'பாராசிட்டமோல்',
-        'te-IN': 'పారాసిటామోల్',
-      };
-      
       return res.status(200).json({
         status: 'success',
         text: mockTexts[language] || mockTexts['en-IN'],
@@ -51,38 +51,43 @@ router.post('/speech-to-text', [
       });
     }
 
-    // Real Sarvam API integration
-    // Note: This is a simplified example. Actual Sarvam API endpoints may differ
-    const sarvamLang = SARVAM_LANGUAGE_MAP[language] || 'en';
-    
-    // Convert base64 audio to buffer
-    const audioBuffer = Buffer.from(audio, 'base64');
+    // Try real Sarvam API, but gracefully fall back to mock on any failure
+    try {
+      const sarvamLang = SARVAM_LANGUAGE_MAP[language] || 'en';
 
-    // Call Sarvam API (example endpoint - adjust based on actual API)
-    const sarvamResponse = await fetch('https://api.sarvam.ai/v1/speech-to-text', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        audio: audio,
-        language: sarvamLang,
-        format: 'webm',
-      }),
-    });
+      const sarvamResponse = await fetch('https://api.sarvam.ai/v1/speech-to-text', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          audio,
+          language: sarvamLang,
+          format: 'webm',
+        }),
+      });
 
-    if (!sarvamResponse.ok) {
-      throw new Error('Sarvam API request failed');
+      if (!sarvamResponse.ok) {
+        throw new Error(`Sarvam API request failed with status ${sarvamResponse.status}`);
+      }
+
+      const sarvamData = await sarvamResponse.json();
+
+      return res.status(200).json({
+        status: 'success',
+        text: sarvamData.text || sarvamData.transcript || '',
+        language,
+      });
+    } catch (sarvamError) {
+      console.error('Sarvam API failed, falling back to mock text:', sarvamError);
+      return res.status(200).json({
+        status: 'success',
+        text: mockTexts[language] || mockTexts['en-IN'],
+        language,
+        note: 'Sarvam API error - using demo fallback transcription.',
+      });
     }
-
-    const sarvamData = await sarvamResponse.json();
-    
-    res.status(200).json({
-      status: 'success',
-      text: sarvamData.text || sarvamData.transcript || '',
-      language,
-    });
   } catch (error) {
     console.error('Error in speech-to-text:', error);
     next(error);

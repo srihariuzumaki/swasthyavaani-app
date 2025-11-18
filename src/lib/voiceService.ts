@@ -1,5 +1,8 @@
 // Voice service for Sarvam API integration
-// Simple demo implementation for multilingual voice features
+// Simple demo implementation for multilingual voice features with native fallbacks
+
+import { Capacitor } from "@capacitor/core";
+import { VoiceRecorder } from "capacitor-voice-recorder";
 
 interface VoiceConfig {
   language: string;
@@ -22,6 +25,7 @@ class VoiceService {
   private isRecording = false;
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: Blob[] = [];
+  private isNativeRecording = false;
 
   // Convert audio blob to base64
   private async audioToBase64(audioBlob: Blob): Promise<string> {
@@ -36,9 +40,48 @@ class VoiceService {
     });
   }
 
+  private base64ToBlob(base64: string, contentType: string): Blob {
+    const byteCharacters = atob(base64);
+    const byteArrays = [];
+
+    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+      const slice = byteCharacters.slice(offset, offset + 512);
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+      byteArrays.push(new Uint8Array(byteNumbers));
+    }
+
+    return new Blob(byteArrays, { type: contentType });
+  }
+
+  private async ensureNativePermission(): Promise<void> {
+    const hasPermission = await VoiceRecorder.hasAudioRecordingPermission();
+    if (!hasPermission.value) {
+      const request = await VoiceRecorder.requestAudioRecordingPermission();
+      if (!request.value) {
+        throw new Error('Microphone permission denied');
+      }
+    }
+  }
+
   // Start recording audio
   async startRecording(): Promise<void> {
     try {
+      if (Capacitor.isNativePlatform()) {
+        const canRecord = await VoiceRecorder.canDeviceVoiceRecord();
+        if (!canRecord.value) {
+          throw new Error('Device cannot record audio');
+        }
+
+        await this.ensureNativePermission();
+        await VoiceRecorder.startRecording();
+        this.isRecording = true;
+        this.isNativeRecording = true;
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       this.mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus'
@@ -61,6 +104,24 @@ class VoiceService {
 
   // Stop recording and return audio blob
   async stopRecording(): Promise<Blob> {
+    if (Capacitor.isNativePlatform()) {
+      if (!this.isNativeRecording) {
+        throw new Error('Not recording');
+      }
+
+      const result = await VoiceRecorder.stopRecording();
+      this.isRecording = false;
+      this.isNativeRecording = false;
+
+      const recordData = result.value.recordDataBase64;
+      if (!recordData) {
+        throw new Error('No audio data captured');
+      }
+
+      const mimeType = result.value.mimeType || 'audio/aac';
+      return this.base64ToBlob(recordData, mimeType);
+    }
+
     return new Promise((resolve, reject) => {
       if (!this.mediaRecorder || !this.isRecording) {
         reject(new Error('Not recording'));
