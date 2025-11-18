@@ -179,20 +179,26 @@ class VoiceService {
   }
 
   // Convert text to speech using Sarvam API (via backend) or browser TTS as fallback
-  async textToSpeech(text: string, language: string): Promise<void> {
+  async textToSpeech(text: string, language: string, speaker?: string): Promise<void> {
     try {
       const sarvamLang = LANGUAGE_MAP[language] || LANGUAGE_MAP['en'];
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://swasthyavaani-app.vercel.app/api';
       
+      const payload: Record<string, string> = {
+        text,
+        language: sarvamLang,
+      };
+
+      if (speaker) {
+        payload.speaker = speaker;
+      }
+
       const response = await fetch(`${API_BASE_URL}/voice/text-to-speech`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          text,
-          language: sarvamLang,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const contentType = response.headers.get('content-type');
@@ -207,19 +213,15 @@ class VoiceService {
       if (contentType && contentType.includes('audio')) {
         const audioBlob = await response.blob();
         this.playAudio(audioBlob);
-      } else {
-        // Try to parse as JSON (might be demo mode response)
-        try {
-          const data = await response.json();
-          // If demo mode, use browser TTS
-          if (data.note && data.note.includes('Demo mode')) {
-            this.speakWithBrowserTTS(text, language);
-            return;
-          }
-        } catch {
-          // Not JSON, fallback to browser TTS
+      } else if (contentType && contentType.includes('application/json')) {
+        const data = await response.json().catch(() => null);
+        if (data?.note?.includes('fallback') || data?.message?.includes('fallback')) {
           this.speakWithBrowserTTS(text, language);
+          return;
         }
+        this.speakWithBrowserTTS(text, language);
+      } else {
+        this.speakWithBrowserTTS(text, language);
       }
     } catch (error) {
       console.error('Error in text to speech:', error);

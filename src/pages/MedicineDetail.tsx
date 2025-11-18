@@ -4,6 +4,13 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   ArrowLeft, 
   Pill, 
@@ -24,6 +31,49 @@ import apiClient from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
 import BottomNav from "@/components/BottomNav";
 
+const DEFAULT_VOICE_BY_LANGUAGE: Record<string, string> = {
+  "en": "anushka",
+  "en-IN": "anushka",
+  "hi": "manisha",
+  "hi-IN": "manisha",
+  "bn": "vidya",
+  "bn-IN": "vidya",
+  "ta": "arya",
+  "ta-IN": "arya",
+  "te": "abhilash",
+  "te-IN": "abhilash",
+  "kn": "karun",
+  "kn-IN": "karun",
+  "ml": "hitesh",
+  "ml-IN": "hitesh",
+  "mr": "manisha",
+  "mr-IN": "manisha",
+  "gu": "vidya",
+  "gu-IN": "vidya",
+  "pa": "abhilash",
+  "pa-IN": "abhilash",
+  "od": "arya",
+  "od-IN": "arya",
+};
+
+const SPEAKER_OPTIONS = [
+  { value: "anushka", label: "Anushka · Female" },
+  { value: "manisha", label: "Manisha · Female" },
+  { value: "vidya", label: "Vidya · Female" },
+  { value: "arya", label: "Arya · Female" },
+  { value: "abhilash", label: "Abhilash · Male" },
+  { value: "karun", label: "Karun · Male" },
+  { value: "hitesh", label: "Hitesh · Male" },
+];
+
+const getDefaultVoice = (lang: string) => DEFAULT_VOICE_BY_LANGUAGE[lang] || "anushka";
+
+const getStoredVoice = (lang: string) => {
+  if (typeof window === "undefined") return getDefaultVoice(lang);
+  const stored = localStorage.getItem(`voice_preference_${lang}`);
+  return stored || getDefaultVoice(lang);
+};
+
 const MedicineDetail = () => {
   const { t } = useTranslation();
   const { language } = useLanguage();
@@ -35,6 +85,7 @@ const MedicineDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [isScanned, setIsScanned] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState<string>(() => getStoredVoice(language));
 
   // Voice output handler
   const handleVoiceOutput = async () => {
@@ -70,7 +121,7 @@ const MedicineDetail = () => {
         }
         textToSpeak += `Please consult a doctor before taking this medicine.`;
 
-        await voiceService.textToSpeech(textToSpeak, language);
+        await voiceService.textToSpeech(textToSpeak, language, selectedVoice);
         
         // Reset speaking state after a delay (browser TTS doesn't have onend callback)
         setTimeout(() => {
@@ -80,6 +131,17 @@ const MedicineDetail = () => {
     } catch (error) {
       console.error('Voice output error:', error);
       setIsSpeaking(false);
+    }
+  };
+
+  useEffect(() => {
+    setSelectedVoice(getStoredVoice(language));
+  }, [language]);
+
+  const handleVoiceChange = (value: string) => {
+    setSelectedVoice(value);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`voice_preference_${language}`, value);
     }
   };
 
@@ -185,19 +247,37 @@ const MedicineDetail = () => {
               <p className="text-sm text-white/90">{t("medicine.detailedInfo", { defaultValue: "Detailed information about this medicine" })}</p>
             </div>
             
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleVoiceOutput}
-              className="text-white hover:bg-white/20 rounded-full backdrop-blur-sm shrink-0"
-              title={isSpeaking ? "Stop reading" : "Read aloud"}
-            >
-              {isSpeaking ? (
-                <VolumeX className="w-5 h-5" />
-              ) : (
-                <Volume2 className="w-5 h-5" />
-              )}
-            </Button>
+            <div className="flex flex-col items-end gap-2">
+              <div className="w-40">
+                <p className="text-xs text-white/70 mb-1">{t("medicine.voiceSelection", { defaultValue: "Voice" })}</p>
+                <Select value={selectedVoice} onValueChange={handleVoiceChange}>
+                  <SelectTrigger className="bg-white/10 text-white border-white/30">
+                    <SelectValue placeholder="Select voice" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SPEAKER_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleVoiceOutput}
+                className="text-white hover:bg-white/20 rounded-full backdrop-blur-sm shrink-0"
+                title={isSpeaking ? "Stop reading" : "Read aloud"}
+              >
+                {isSpeaking ? (
+                  <VolumeX className="w-5 h-5" />
+                ) : (
+                  <Volume2 className="w-5 h-5" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

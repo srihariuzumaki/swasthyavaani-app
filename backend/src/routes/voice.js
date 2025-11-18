@@ -17,6 +17,20 @@ const LANGUAGE_CODE_MAP = {
   'kn': 'kn-IN',
 };
 
+const DEFAULT_TTS_SPEAKERS = {
+  'en-IN': 'anushka',
+  'hi-IN': 'manisha',
+  'bn-IN': 'vidya',
+  'ta-IN': 'arya',
+  'te-IN': 'abhilash',
+  'kn-IN': 'karun',
+  'ml-IN': 'hitesh',
+  'mr-IN': 'manisha',
+  'gu-IN': 'vidya',
+  'pa-IN': 'abhilash',
+  'od-IN': 'arya',
+};
+
 // @route   POST /api/voice/speech-to-text
 // @desc    Convert speech to text using Sarvam API
 // @access  Private (for demo, can be public)
@@ -120,7 +134,7 @@ router.post('/text-to-speech', [
     .withMessage('Language must be a string'),
 ], validateRequest, async (req, res, next) => {
   try {
-    const { text, language = 'en-IN' } = req.body;
+    const { text, language = 'en-IN', speaker } = req.body;
     const apiKey = process.env.SARVAM_API_KEY;
 
     // For demo purposes - if no API key, return mock audio
@@ -136,32 +150,52 @@ router.post('/text-to-speech', [
       });
     }
 
-    // Real Sarvam API integration
-    const sarvamLang = SARVAM_LANGUAGE_MAP[language] || 'en';
-    
-    // Call Sarvam API (example endpoint - adjust based on actual API)
-    const sarvamResponse = await fetch('https://api.sarvam.ai/v1/text-to-speech', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const normalizedLanguage = LANGUAGE_CODE_MAP[language] || language || 'en-IN';
+    const selectedSpeaker = speaker || DEFAULT_TTS_SPEAKERS[normalizedLanguage] || 'anushka';
+
+    try {
+      const sarvamResponse = await fetch('https://api.sarvam.ai/text-to-speech', {
+        method: 'POST',
+        headers: {
+          'api-subscription-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text,
+          model: 'bulbul:v2',
+          target_language_code: normalizedLanguage,
+          speaker: selectedSpeaker,
+          audio_format: 'mp3',
+        }),
+      });
+
+      if (!sarvamResponse.ok) {
+        const errorText = await sarvamResponse.text().catch(() => '');
+        throw new Error(`Sarvam TTS request failed with status ${sarvamResponse.status}: ${errorText}`);
+      }
+
+      const sarvamData = await sarvamResponse.json();
+      const audioBase64 = sarvamData?.audios?.[0];
+
+      if (!audioBase64) {
+        throw new Error('Sarvam TTS response missing audio data');
+      }
+
+      const audioBuffer = Buffer.from(audioBase64, 'base64');
+      
+      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Content-Length', audioBuffer.byteLength);
+      return res.status(200).send(audioBuffer);
+    } catch (sarvamError) {
+      console.error('Sarvam TTS failed, falling back to browser:', sarvamError);
+      return res.status(200).json({
+        status: 'success',
+        message: 'Sarvam TTS unavailable. Falling back to browser speech.',
         text,
-        language: sarvamLang,
-        voice: 'default', // Adjust based on available voices
-      }),
-    });
-
-    if (!sarvamResponse.ok) {
-      throw new Error('Sarvam API request failed');
+        language: normalizedLanguage,
+        note: 'Sarvam TTS error - using browser SpeechSynthesis fallback.',
+      });
     }
-
-    const audioBuffer = await sarvamResponse.arrayBuffer();
-    
-    res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Content-Length', audioBuffer.byteLength);
-    res.status(200).send(Buffer.from(audioBuffer));
   } catch (error) {
     console.error('Error in text-to-speech:', error);
     next(error);
