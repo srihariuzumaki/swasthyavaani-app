@@ -3,6 +3,7 @@ import { body } from 'express-validator';
 import FormData from 'form-data';
 import { validateRequest } from '../utils/validation.js';
 import { authenticate } from '../middleware/auth.js';
+import { translateText } from '../utils/translator.js';
 
 const router = express.Router();
 
@@ -198,6 +199,34 @@ router.post('/text-to-speech', [
     }
   } catch (error) {
     console.error('Error in text-to-speech:', error);
+    next(error);
+  }
+});
+
+// @route   POST /api/voice/translate
+// @desc    Translate arbitrary text to target language (default English)
+router.post('/translate', [
+  body('text')
+    .notEmpty()
+    .withMessage('Text is required'),
+  body('targetLanguage')
+    .optional()
+    .isString()
+    .withMessage('targetLanguage must be a string'),
+], validateRequest, async (req, res, next) => {
+  try {
+    const { text, targetLanguage = 'en' } = req.body;
+    const translatedText = await translateText(text, targetLanguage);
+
+    res.json({
+      status: 'success',
+      data: {
+        text: translatedText,
+        targetLanguage,
+      },
+    });
+  } catch (error) {
+    console.error('Error translating text:', error);
     next(error);
   }
 });

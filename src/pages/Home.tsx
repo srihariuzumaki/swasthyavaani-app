@@ -67,11 +67,22 @@ const Home = () => {
         
         if (transcribedText) {
           setSearchQuery(transcribedText);
+
+          let searchText = transcribedText;
+          if (language !== 'en') {
+            try {
+              const translationResponse = await apiClient.post('/voice/translate', {
+                text: transcribedText,
+                targetLanguage: 'en',
+              });
+              searchText = translationResponse.data?.text || translationResponse?.data?.data?.text || searchText;
+            } catch (translateError) {
+              console.error('Translation failed:', translateError);
+            }
+          }
+
           setIsProcessingVoice(false);
-          // Auto-search after transcription
-          setTimeout(() => {
-            handleSearch();
-          }, 300);
+          await handleSearch(searchText, transcribedText);
         } else {
           setIsProcessingVoice(false);
           toast.error("Could not understand speech. Please try again.");
@@ -135,8 +146,9 @@ const Home = () => {
     return () => clearTimeout(debounce);
   }, [searchQuery]);
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  const handleSearch = async (overrideQuery?: string, originalQuery?: string) => {
+    const queryInput = overrideQuery !== undefined ? overrideQuery : searchQuery;
+    if (!queryInput.trim()) return;
     setShowSuggestions(false);
     setSearchResults([]); // Clear previous results
     
@@ -145,7 +157,7 @@ const Home = () => {
     
     try {
       const response = await apiClient.searchMedicines({ 
-        search: searchQuery.trim(),
+        search: queryInput.trim(),
         lang: language
       }) as ApiResponse<MedicineSearchResponse>;
       
@@ -155,7 +167,7 @@ const Home = () => {
         // Store search in user history
         try {
           await apiClient.post('/users/search-history', {
-            query: searchQuery.trim(),
+            query: (originalQuery ?? queryInput).trim(),
             type: 'text',
             resultCount: response.data?.medicines?.length || 0
           });
