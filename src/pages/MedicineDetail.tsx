@@ -90,6 +90,7 @@ const MedicineDetail = () => {
   const [error, setError] = useState<string | null>(null);
   const [isScanned, setIsScanned] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingSection, setSpeakingSection] = useState<string | null>(null);
   const [selectedVoice, setSelectedVoice] = useState<string>(() => getStoredVoice(language));
 
   useEffect(() => {
@@ -176,6 +177,27 @@ const MedicineDetail = () => {
   const localizedIndications = translatedIndications && translatedIndications.length > 0
     ? translatedIndications
     : medicine.indications || [];
+
+  const handleSectionVoice = async (section: string, text: string) => {
+    // Stop any currently playing audio
+    if (speakingSection) {
+      voiceService.stopSpeaking();
+      setSpeakingSection(null);
+      if (speakingSection === section) {
+        return; // If clicking the same section, just stop
+      }
+    }
+
+    setSpeakingSection(section);
+
+    try {
+      await voiceService.textToSpeech(text, language, selectedVoice);
+    } catch (error) {
+      console.error('Section voice error:', error);
+    } finally {
+      setSpeakingSection(null);
+    }
+  };
 
   const handleVoiceOutput = async () => {
     if (!medicine) return;
@@ -387,13 +409,27 @@ const MedicineDetail = () => {
           {/* Uses Section */}
           {localizedIndications.length > 0 && (
             <Card className="p-4 sm:p-5 bg-gradient-to-br from-green-50/50 via-white to-emerald-50/50 dark:from-green-950/20 dark:via-card dark:to-emerald-950/20 border-0 border-x-0 rounded-none shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-500/10 border-2 border-green-500/20">
-                  <Heart className="w-5 h-5 text-green-600 dark:text-green-400" />
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-500/10 border-2 border-green-500/20">
+                    <Heart className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <h3 className="font-bold text-base text-foreground">
+                    {t("medicine.uses", { defaultValue: "Uses" })}
+                  </h3>
                 </div>
-                <h3 className="font-bold text-base text-foreground">
-                  {t("medicine.uses", { defaultValue: "Uses" })}
-                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleSectionVoice('usages', localizedIndications.join('. '))}
+                  className="shrink-0 hover:bg-green-500/10"
+                >
+                  {speakingSection === 'usages' ? (
+                    <VolumeX className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <Volume2 className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  )}
+                </Button>
               </div>
               <ul className="space-y-2.5">
                 {localizedIndications.map((indication: string, idx: number) => (
@@ -409,13 +445,36 @@ const MedicineDetail = () => {
           {/* Dosage Section */}
           {medicine.dosage && (
             <Card className="p-4 sm:p-5 bg-gradient-to-br from-card to-muted/30 border-0 border-x-0 rounded-none shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/10 border-2 border-blue-500/20">
-                  <Pill className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-500/10 border-2 border-blue-500/20">
+                    <Pill className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="font-bold text-base text-foreground">
+                    {t("medicine.dosage", { defaultValue: "Dosage" })}
+                  </h3>
                 </div>
-                <h3 className="font-bold text-base text-foreground">
-                  {t("medicine.dosage", { defaultValue: "Dosage" })}
-                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    let dosageText = '';
+                    if (medicine.dosage.adult) {
+                      dosageText += `Adults: ${medicine.dosage.adult.min || 'As directed'} to ${medicine.dosage.adult.max || 'As directed'} ${medicine.dosage.adult.frequency || ''}. `;
+                    }
+                    if (medicine.dosage.pediatric) {
+                      dosageText += `Children: ${medicine.dosage.pediatric.min || 'Consult doctor'} to ${medicine.dosage.pediatric.max || 'Consult doctor'} ${medicine.dosage.pediatric.frequency || ''}.`;
+                    }
+                    handleSectionVoice('dosage', dosageText);
+                  }}
+                  className="shrink-0 hover:bg-blue-500/10"
+                >
+                  {speakingSection === 'dosage' ? (
+                    <VolumeX className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  ) : (
+                    <Volume2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  )}
+                </Button>
               </div>
               <div className="space-y-3">
                 {medicine.dosage.adult && (
@@ -519,13 +578,27 @@ const MedicineDetail = () => {
           {/* Side Effects Section */}
           {medicine.sideEffects && medicine.sideEffects.length > 0 && (
             <Card className="p-4 sm:p-5 bg-gradient-to-br from-orange-50/50 via-white to-red-50/50 dark:from-orange-950/20 dark:via-card dark:to-red-950/20 border-0 border-x-0 rounded-none shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-orange-500/10 border-2 border-orange-500/20">
-                  <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-orange-500/10 border-2 border-orange-500/20">
+                    <AlertTriangle className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <h3 className="font-bold text-base text-foreground">
+                    {t("medicine.sideEffects", { defaultValue: "Side Effects" })}
+                  </h3>
                 </div>
-                <h3 className="font-bold text-base text-foreground">
-                  {t("medicine.sideEffects", { defaultValue: "Side Effects" })}
-                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleSectionVoice('sideEffects', medicine.sideEffects.join('. '))}
+                  className="shrink-0 hover:bg-orange-500/10"
+                >
+                  {speakingSection === 'sideEffects' ? (
+                    <VolumeX className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                  ) : (
+                    <Volume2 className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                  )}
+                </Button>
               </div>
               <ul className="space-y-2.5">
                 {medicine.sideEffects.map((effect: string, idx: number) => (
