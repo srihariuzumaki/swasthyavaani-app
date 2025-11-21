@@ -186,6 +186,29 @@ router.get('/:id', async (req, res, next) => {
             });
         }
 
+        // If language is not English, try to get direct translation from Gemini
+        if (lang && lang !== 'en') {
+            const { fetchMedicineTranslation } = await import('../utils/medlinePlusService.js');
+            const translatedData = await fetchMedicineTranslation(medicine.name, lang);
+
+            if (translatedData) {
+                // Merge translated data with the real medicine object (preserving _id)
+                const responseMedicine = {
+                    ...medicine.toObject(),
+                    ...translatedData,
+                    _id: medicine._id, // Explicitly preserve the real MongoDB ID
+                    // Ensure these specific fields are arrays if they came back as such
+                    usage: Array.isArray(translatedData.usage) ? translatedData.usage : [translatedData.usage],
+                };
+
+                return res.json({
+                    status: 'success',
+                    data: { medicine: responseMedicine },
+                });
+            }
+        }
+
+        // Fallback to English or getTranslatedMedicine
         const translatedMedicine = await getTranslatedMedicine(medicine, lang);
         res.json({
             status: 'success',
