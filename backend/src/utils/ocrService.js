@@ -9,16 +9,44 @@ const OCR_SPACE_API_URL = 'https://api.ocr.space/parse/image';
  * @returns {Promise<string>} Extracted text
  */
 export const extractTextFromImage = async (imageBase64, maxRetries = 2) => {
-  // Optimize image size if it's too large (reduce quality for faster processing)
+  // Compress image if it's too large for OCR API (1024 KB limit)
   let optimizedImage = imageBase64;
-  if (imageBase64.length > 100000) { // If larger than ~100KB
-    console.log('Image is large, optimizing for faster OCR processing...');
-    // Note: In production, you might want to use an image compression library
-    // For now, we'll proceed with the original but add timeout handling
+  const MAX_SIZE_KB = 900; // Target 900 KB to have buffer below 1024 KB limit
+  const estimatedSizeKB = (imageBase64.length * 3) / 4 / 1024; // Base64 to bytes to KB
+
+  if (estimatedSizeKB > MAX_SIZE_KB) {
+    console.log(`Image is large (${Math.round(estimatedSizeKB)} KB), compressing to meet OCR size limit...`);
+
+    try {
+      const sharp = (await import('sharp')).default;
+      const buffer = Buffer.from(imageBase64, 'base64');
+
+      // Calculate compression quality needed
+      const compressionRatio = MAX_SIZE_KB / estimatedSizeKB;
+      const quality = Math.max(30, Math.min(90, Math.round(compressionRatio * 85)));
+
+      console.log(`Compressing with ${quality}% quality...`);
+
+      // Resize and compress
+      const compressedBuffer = await sharp(buffer)
+        .resize(1600, 1600, {
+          fit: 'inside',
+          withoutEnlargement: true
+        })
+        .jpeg({ quality })
+        .toBuffer();
+
+      optimizedImage = compressedBuffer.toString('base64');
+      const newSizeKB = (optimizedImage.length * 3) / 4 / 1024;
+      console.log(`Compressed image from ${Math.round(estimatedSizeKB)} KB to ${Math.round(newSizeKB)} KB`);
+    } catch (compressionError) {
+      console.error('Image compression failed:', compressionError.message);
+      console.log('Attempting to proceed with original image...');
+    }
   }
-  
+
   const TIMEOUT_MS = 45000; // 45 seconds timeout
-  
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       if (attempt > 0) {
@@ -26,10 +54,10 @@ export const extractTextFromImage = async (imageBase64, maxRetries = 2) => {
         console.log(`Retrying OCR attempt ${attempt + 1}/${maxRetries + 1} after ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
-      
+
       console.log(`Starting OCR processing attempt ${attempt + 1}/${maxRetries + 1}...`);
       console.log(`Image base64 length: ${imageBase64.length}`);
-      
+
       // Create form data for OCR.space API
       const formData = new URLSearchParams();
       formData.append('apikey', OCR_SPACE_API_KEY);
@@ -38,12 +66,12 @@ export const extractTextFromImage = async (imageBase64, maxRetries = 2) => {
       formData.append('isOverlayRequired', 'false');
       formData.append('detectOrientation', 'true');
       formData.append('scale', 'true'); // Enable scaling for faster processing
-      
+
       // Create timeout promise
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('OCR request timeout')), TIMEOUT_MS);
       });
-      
+
       // Create fetch promise
       const fetchPromise = fetch(OCR_SPACE_API_URL, {
         method: 'POST',
@@ -52,10 +80,10 @@ export const extractTextFromImage = async (imageBase64, maxRetries = 2) => {
         },
         body: formData.toString()
       });
-      
+
       // Race between fetch and timeout
       const response = await Promise.race([fetchPromise, timeoutPromise]);
-      
+
       if (!response.ok) {
         let errorText;
         try {
@@ -67,10 +95,10 @@ export const extractTextFromImage = async (imageBase64, maxRetries = 2) => {
           }
           throw new Error('OCR API response timeout');
         }
-        
+
         console.error('OCR.space API error:', response.status, response.statusText);
         console.error('Error details:', errorText);
-        
+
         // If it's a timeout error or rate limit, retry
         if (response.status === 429 || errorText.includes('timeout') || errorText.includes('E101')) {
           if (attempt < maxRetries) {
@@ -79,14 +107,14 @@ export const extractTextFromImage = async (imageBase64, maxRetries = 2) => {
           }
           throw new Error(`OCR API timeout/rate limit: ${response.status}`);
         }
-        
+
         // For other errors, retry if we have attempts left
         if (attempt < maxRetries) {
           continue;
         }
         throw new Error(`OCR API returned status ${response.status}: ${errorText.substring(0, 200)}`);
       }
-      
+
       // Race between JSON parsing and timeout
       let data;
       try {
@@ -98,12 +126,12 @@ export const extractTextFromImage = async (imageBase64, maxRetries = 2) => {
         }
         throw new Error('OCR API response parsing timeout');
       }
-      
+
       // Check for API errors
       if (data.ErrorMessage && data.ErrorMessage.length > 0) {
         const errorMsg = data.ErrorMessage[0];
         console.error('OCR.space API error:', data.ErrorMessage);
-        
+
         // Handle timeout error
         if (errorMsg.includes('E101') || errorMsg.includes('timeout') || errorMsg.includes('Timed out')) {
           if (attempt < maxRetries) {
@@ -112,14 +140,14 @@ export const extractTextFromImage = async (imageBase64, maxRetries = 2) => {
           }
           throw new Error(`OCR API timeout: ${errorMsg}. Please try again with a smaller or clearer image.`);
         }
-        
+
         // For other API errors, throw immediately
         if (attempt < maxRetries && (errorMsg.includes('rate limit') || errorMsg.includes('quota'))) {
           continue; // Retry on rate limits
         }
         throw new Error(`OCR API error: ${errorMsg}`);
       }
-      
+
       // Extract text from response
       if (data.ParsedResults && data.ParsedResults.length > 0) {
         const extractedText = data.ParsedResults[0].ParsedText;
@@ -128,7 +156,7 @@ export const extractTextFromImage = async (imageBase64, maxRetries = 2) => {
           return extractedText.trim();
         }
       }
-      
+
       // If no parsed text, try to get text from text overlay
       if (data.TextOverlay && data.TextOverlay.Lines) {
         const lines = data.TextOverlay.Lines.map(line => line.LineText).filter(text => text);
@@ -138,30 +166,30 @@ export const extractTextFromImage = async (imageBase64, maxRetries = 2) => {
           return extractedText.trim();
         }
       }
-      
+
       // If no text found and this is not the last attempt, retry
       if (attempt < maxRetries) {
         console.log('No text extracted, retrying...');
         continue;
       }
-      
+
       throw new Error('No text extracted from image after all attempts');
-      
+
     } catch (error) {
       console.error(`OCR Error (attempt ${attempt + 1}/${maxRetries + 1}):`, error.message);
-      
+
       // If it's a timeout and we have retries left, continue to next attempt
       if ((error.message.includes('timeout') || error.message.includes('E101') || error.message.includes('Timed out')) && attempt < maxRetries) {
         continue;
       }
-      
+
       // If this is the last attempt, throw the error
       if (attempt === maxRetries) {
         throw new Error(`Failed to extract text from image after ${maxRetries + 1} attempts: ${error.message}`);
       }
     }
   }
-  
+
   throw new Error('OCR failed after all retry attempts');
 };
 
@@ -174,13 +202,13 @@ export const extractMedicineNames = (text) => {
   if (!text || text.trim().length === 0) {
     return [];
   }
-  
+
   const medicineNames = [];
-  
+
   // Split text into lines and words
   const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   const words = text.split(/\s+/).filter(word => word.length >= 2);
-  
+
   // Common medicine name patterns
   const medicinePatterns = [
     // Pattern: Brand name with dash and number (e.g., "PARACIP-500", "ARACIP-500")
@@ -194,7 +222,7 @@ export const extractMedicineNames = (text) => {
     // Pattern: All caps brand names (e.g., "PARACIP", "ARACIP")
     /\b([A-Z]{3,}(?:-[A-Z0-9]+)?)\b/,
   ];
-  
+
   // Known medicine patterns and synonyms
   const medicineSynonyms = {
     'paracip': 'Paracetamol',
@@ -206,7 +234,7 @@ export const extractMedicineNames = (text) => {
     'brocetamol': 'Paracetamol',
     'paraceramo': 'Paracetamol',
   };
-  
+
   // First, extract all brand names with dashes and numbers (highest priority)
   const brandNamesWithDash = text.match(/\b([A-Z]{3,}-\d+)\b/g);
   if (brandNamesWithDash) {
@@ -217,27 +245,27 @@ export const extractMedicineNames = (text) => {
       }
     });
   }
-  
+
   // Extract potential medicine names from text
   for (const line of lines) {
     // Skip very short lines (likely not medicine names)
     if (line.length < 3 || line.length > 100) continue;
-    
+
     // Skip common non-medicine words/phrases
     const skipPhrases = [
-      'tablet', 'capsule', 'take', 'use', 'dosage', 'before', 'after', 
-      'food', 'meal', 'prescription', 'expires', 'manufactured', 'date', 
+      'tablet', 'capsule', 'take', 'use', 'dosage', 'before', 'after',
+      'food', 'meal', 'prescription', 'expires', 'manufactured', 'date',
       'batch', 'mfg', 'exp', 'price', 'mrp', 'store', 'instructions',
       'composition', 'indications', 'side effects', 'warnings', 'tabel',
       'col', 'for', 'ing', 'altaxes', 'cp', 'nfd', 'aug', 'pxp', 'jul',
       'r.p', 'fortabs'
     ];
-    
+
     const lowerLine = line.toLowerCase();
     if (skipPhrases.some(phrase => lowerLine.includes(phrase) && lowerLine.length < 30)) {
       continue;
     }
-    
+
     // Try to match medicine patterns
     for (const pattern of medicinePatterns) {
       const matches = line.matchAll(new RegExp(pattern, 'g'));
@@ -245,16 +273,16 @@ export const extractMedicineNames = (text) => {
         if (match && match[1]) {
           const potentialName = match[1].trim();
           // Filter out numbers only, very short names, or common words
-          if (!/^\d+$/.test(potentialName) && 
-              potentialName.length >= 3 && 
-              potentialName.length <= 50 &&
-              !skipPhrases.some(phrase => potentialName.toLowerCase().includes(phrase))) {
+          if (!/^\d+$/.test(potentialName) &&
+            potentialName.length >= 3 &&
+            potentialName.length <= 50 &&
+            !skipPhrases.some(phrase => potentialName.toLowerCase().includes(phrase))) {
             medicineNames.push(potentialName);
           }
         }
       }
     }
-    
+
     // If line looks like a medicine name (starts with capital, reasonable length)
     if (/^[A-Z]/.test(line) && line.length >= 3 && line.length <= 50) {
       const words = line.split(/\s+/);
@@ -268,17 +296,17 @@ export const extractMedicineNames = (text) => {
       }
     }
   }
-  
+
   // Normalize and expand medicine names using synonyms
   // IMPORTANT: Always keep original names - they work for ANY medicine
   const normalizedNames = [];
   for (const name of medicineNames) {
     const lowerName = name.toLowerCase().replace(/[-\s]/g, '');
     let foundSynonym = false;
-    
+
     // Always add original name first (works for any medicine)
     normalizedNames.push(name);
-    
+
     // Check for synonyms and add normalized versions as alternatives
     for (const [synonym, genericName] of Object.entries(medicineSynonyms)) {
       if (lowerName.includes(synonym)) {
@@ -303,10 +331,10 @@ export const extractMedicineNames = (text) => {
       }
     }
   }
-  
+
   // Remove duplicates and return unique medicine names
   const uniqueNames = [...new Set(normalizedNames)];
-  
+
   // Prioritize names that contain numbers and dashes (likely brand names like "PARACIP-500")
   // IMPORTANT: Original extracted names are tried FIRST to work for ANY medicine
   uniqueNames.sort((a, b) => {
@@ -315,23 +343,23 @@ export const extractMedicineNames = (text) => {
     const bHasDashAndNumber = /-\d/.test(b);
     if (aHasDashAndNumber && !bHasDashAndNumber) return -1;
     if (!aHasDashAndNumber && bHasDashAndNumber) return 1;
-    
+
     // Second priority: names with number (e.g., "Paracetamol 500", "Dolo 650")
     const aHasNumber = /\d/.test(a);
     const bHasNumber = /\d/.test(b);
     if (aHasNumber && !bHasNumber) return -1;
     if (!aHasNumber && bHasNumber) return 1;
-    
+
     // Third priority: names that are all caps (likely brand names like "PARACIP", "DOLO")
     const aIsAllCaps = /^[A-Z]+(?:-\d+)?$/.test(a);
     const bIsAllCaps = /^[A-Z]+(?:-\d+)?$/.test(b);
     if (aIsAllCaps && !bIsAllCaps) return -1;
     if (!aIsAllCaps && bIsAllCaps) return 1;
-    
+
     // Fourth priority: shorter names (likely brand names)
     return a.length - b.length;
   });
-  
+
   console.log('Extracted medicine names:', uniqueNames);
   return uniqueNames.slice(0, 5); // Return top 5 candidates
 };
@@ -345,15 +373,15 @@ export const findMedicineNameFromImage = async (imageBase64) => {
   try {
     // Extract text from image using Gemini Vision API
     const extractedText = await extractTextFromImage(imageBase64);
-    
+
     if (!extractedText || extractedText.trim().length === 0) {
       console.log('No text extracted from image');
       return null;
     }
-    
+
     // Extract potential medicine names
     const medicineNames = extractMedicineNames(extractedText);
-    
+
     if (medicineNames.length === 0) {
       console.log('Could not extract medicine name from text:', extractedText);
       // Try to extract any capitalized words that might be medicine names
@@ -365,7 +393,7 @@ export const findMedicineNameFromImage = async (imageBase64) => {
       }
       return null;
     }
-    
+
     // Return the first (most likely) medicine name
     console.log('Selected medicine name:', medicineNames[0]);
     return medicineNames[0];
