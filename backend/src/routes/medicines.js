@@ -42,6 +42,48 @@ router.get('/', [
             const medicineData = await fetchComprehensiveMedicineData(search);
 
             if (medicineData && medicineData.name) {
+                // Helper function to normalize dosage data
+                const normalizeDosage = (dosageData) => {
+                    if (!dosageData) return undefined;
+
+                    // If dosage is already in correct format, return it
+                    if (typeof dosageData === 'object' && !Array.isArray(dosageData)) {
+                        const normalized = {};
+
+                        // Handle adult dosage
+                        if (dosageData.adult) {
+                            if (typeof dosageData.adult === 'string') {
+                                // Convert string to object format
+                                normalized.adult = {
+                                    min: dosageData.adult,
+                                    max: dosageData.adult,
+                                    frequency: 'As prescribed by doctor'
+                                };
+                            } else if (typeof dosageData.adult === 'object') {
+                                normalized.adult = dosageData.adult;
+                            }
+                        }
+
+                        // Handle pediatric dosage
+                        if (dosageData.pediatric) {
+                            if (typeof dosageData.pediatric === 'string') {
+                                // Convert string to object format
+                                normalized.pediatric = {
+                                    min: dosageData.pediatric,
+                                    max: dosageData.pediatric,
+                                    frequency: 'As prescribed by doctor'
+                                };
+                            } else if (typeof dosageData.pediatric === 'object') {
+                                normalized.pediatric = dosageData.pediatric;
+                            }
+                        }
+
+                        return Object.keys(normalized).length > 0 ? normalized : undefined;
+                    }
+
+                    return undefined;
+                };
+
                 // Create or update medicine in database
                 let medicine = await Medicine.findOne({
                     name: { $regex: medicineData.name, $options: 'i' }
@@ -55,7 +97,7 @@ router.get('/', [
                         description: medicineData.description,
                         usage: Array.isArray(medicineData.usage) ? medicineData.usage.join(', ') : medicineData.usage,
                         indications: medicineData.usage,
-                        dosage: medicineData.dosage,
+                        dosage: normalizeDosage(medicineData.dosage),
                         sideEffects: medicineData.sideEffects,
                         contraindications: medicineData.contraindications,
                         interactions: medicineData.interactions,
@@ -80,6 +122,8 @@ router.get('/', [
                             _id: medicine._id, // Explicitly preserve the real MongoDB ID
                             // Ensure these specific fields are arrays if they came back as such
                             usage: Array.isArray(translatedData.usage) ? translatedData.usage : [translatedData.usage],
+                            // Also set indications to the translated usage (frontend displays indications)
+                            indications: Array.isArray(translatedData.usage) ? translatedData.usage : [translatedData.usage],
                         };
 
                         return res.json({
@@ -199,6 +243,8 @@ router.get('/:id', async (req, res, next) => {
                     _id: medicine._id, // Explicitly preserve the real MongoDB ID
                     // Ensure these specific fields are arrays if they came back as such
                     usage: Array.isArray(translatedData.usage) ? translatedData.usage : [translatedData.usage],
+                    // Also set indications to the translated usage (frontend displays indications)
+                    indications: Array.isArray(translatedData.usage) ? translatedData.usage : [translatedData.usage],
                 };
 
                 return res.json({
