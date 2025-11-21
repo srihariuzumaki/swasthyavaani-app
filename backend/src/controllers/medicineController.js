@@ -9,11 +9,11 @@ export const recognizeMedicineFromImage = async (imageBase64, useTrustedSources 
     // If we have a medicine name, fetch comprehensive data
     if (medicineName) {
       const comprehensiveData = await fetchComprehensiveMedicineData(medicineName);
-      
+
       if (comprehensiveData) {
         // Save to database if not exists
         let medicine = await Medicine.findOne({ name: { $regex: comprehensiveData.name, $options: 'i' } });
-        
+
         if (!medicine) {
           // Create new medicine record
           medicine = await Medicine.create({
@@ -35,29 +35,29 @@ export const recognizeMedicineFromImage = async (imageBase64, useTrustedSources 
             isPrescriptionRequired: comprehensiveData.isPrescriptionRequired || false,
           });
         }
-        
-        return { 
-          success: true, 
+
+        return {
+          success: true,
           medicine,
           source: 'comprehensive_api',
           confidence: 0.95
         };
       }
     }
-    
+
     if (useTrustedSources) {
       // Try to find in database first
       const medicines = await Medicine.find({
         isActive: true
       }).limit(10);
-      
+
       if (medicines.length === 0) {
         return { success: false, error: 'No medicines found in database' };
       }
-      
+
       const medicine = medicines[Math.floor(Math.random() * medicines.length)];
-      return { 
-        success: true, 
+      return {
+        success: true,
         medicine,
         source: 'database',
         confidence: 0.85
@@ -84,15 +84,15 @@ export const recognizeMedicineFromImage = async (imageBase64, useTrustedSources 
 
 export const scanMedicine = async (req, res, next) => {
   try {
-    const { image, useTrustedSources = true, medicineName } = req.body;
-    
+    const { image, useTrustedSources = true, medicineName, language } = req.body;
+
     // Check if we have image data
     if (!image) {
       return next(createError(400, 'Image data is required'));
     }
-    
+
     let extractedMedicineName = null;
-    
+
     // If medicine name is provided, use it directly
     if (medicineName && medicineName.trim()) {
       extractedMedicineName = medicineName.trim();
@@ -101,15 +101,15 @@ export const scanMedicine = async (req, res, next) => {
       console.log('Extracting medicine name from image using OCR...');
       try {
         const { extractTextFromImage, extractMedicineNames } = await import('../utils/ocrService.js');
-        
+
         const fullText = await extractTextFromImage(image);
         if (!fullText || fullText.trim().length === 0) {
           return next(createError(400, 'Could not extract text from image. Please enter the medicine name manually or provide a clearer image.'));
         }
-        
+
         // Get all potential medicine names
         const allMedicineNames = extractMedicineNames(fullText);
-        
+
         if (allMedicineNames.length === 0) {
           // Try to extract capitalized words as fallback
           const capitalizedWords = fullText.match(/\b([A-Z]{3,}(?:[-]\d+)?)\b/g);
@@ -124,26 +124,49 @@ export const scanMedicine = async (req, res, next) => {
           console.log('All extracted medicine names:', allMedicineNames);
           console.log('Selected medicine name:', extractedMedicineName);
         }
-        
+
         // Try multiple medicine names if we have multiple candidates
         if (allMedicineNames.length > 0) {
           let result = null;
-          
+
           // Try each medicine name until one succeeds
           for (let i = 0; i < Math.min(allMedicineNames.length, 5); i++) {
             const candidateName = allMedicineNames[i];
             console.log(`Trying medicine name ${i + 1}/${allMedicineNames.length}: "${candidateName}"`);
-            
+
             result = await recognizeMedicineFromImage(image, useTrustedSources, candidateName);
-            
+
             if (result.success) {
               extractedMedicineName = candidateName;
               console.log(`Success with medicine name: ${extractedMedicineName}`);
-              
+
+              // If language is specified and not English, translate the medicine data
+              let medicineData = result.medicine;
+              if (language && language !== 'en') {
+                try {
+                  const { fetchMedicineTranslation } = await import('../utils/medlinePlusService.js');
+                  const translatedData = await fetchMedicineTranslation(result.medicine.name, language);
+
+                  if (translatedData) {
+                    // Merge translated data with the real medicine object
+                    medicineData = {
+                      ...result.medicine.toObject(),
+                      ...translatedData,
+                      _id: result.medicine._id, // Preserve the real MongoDB ID
+                      usage: Array.isArray(translatedData.usage) ? translatedData.usage : [translatedData.usage],
+                      indications: Array.isArray(translatedData.usage) ? translatedData.usage : [translatedData.usage],
+                    };
+                  }
+                } catch (translationError) {
+                  console.error('Translation error:', translationError);
+                  // Continue with English data if translation fails
+                }
+              }
+
               return res.json({
                 status: 'success',
                 data: {
-                  medicine: result.medicine,
+                  medicine: medicineData,
                   source: result.source,
                   confidence: result.confidence,
                   extractedName: extractedMedicineName
@@ -153,14 +176,14 @@ export const scanMedicine = async (req, res, next) => {
               console.log(`Medicine name "${candidateName}" failed: ${result.error}`);
             }
           }
-          
+
           // If all attempts failed, return error with all tried names
           const triedNames = allMedicineNames.slice(0, 5).join(', ');
           return next(createError(404, `Could not find medicine information for any of the extracted names: ${triedNames}. Please try entering the medicine name manually.`));
         }
       } catch (ocrError) {
         console.error('OCR Error:', ocrError);
-        
+
         // Provide more helpful error messages
         let errorMessage = ocrError.message;
         if (errorMessage.includes('timeout') || errorMessage.includes('E101') || errorMessage.includes('Timed out')) {
@@ -170,22 +193,45 @@ export const scanMedicine = async (req, res, next) => {
         } else {
           errorMessage = `Failed to process image: ${errorMessage}. Please enter the medicine name manually or try again with a clearer image.`;
         }
-        
+
         return next(createError(400, errorMessage));
       }
     }
-    
+
     // Fetch comprehensive medicine data using extracted/provided name
     const result = await recognizeMedicineFromImage(image, useTrustedSources, extractedMedicineName);
-    
+
     if (!result.success) {
       return next(createError(404, result.error || `Could not find medicine information for "${extractedMedicineName}". Please try entering the medicine name manually.`));
     }
-    
+
+    // If language is specified and not English, translate the medicine data
+    let medicineData = result.medicine;
+    if (language && language !== 'en') {
+      try {
+        const { fetchMedicineTranslation } = await import('../utils/medlinePlusService.js');
+        const translatedData = await fetchMedicineTranslation(result.medicine.name, language);
+
+        if (translatedData) {
+          // Merge translated data with the real medicine object
+          medicineData = {
+            ...result.medicine.toObject(),
+            ...translatedData,
+            _id: result.medicine._id, // Preserve the real MongoDB ID
+            usage: Array.isArray(translatedData.usage) ? translatedData.usage : [translatedData.usage],
+            indications: Array.isArray(translatedData.usage) ? translatedData.usage : [translatedData.usage],
+          };
+        }
+      } catch (translationError) {
+        console.error('Translation error:', translationError);
+        // Continue with English data if translation fails
+      }
+    }
+
     res.json({
       status: 'success',
       data: {
-        medicine: result.medicine,
+        medicine: medicineData,
         source: result.source,
         confidence: result.confidence,
         extractedName: extractedMedicineName // Include extracted name for debugging
@@ -201,20 +247,20 @@ export const scanMedicine = async (req, res, next) => {
 export const searchMedicineByName = async (req, res, next) => {
   try {
     const { medicineName } = req.params;
-    
+
     if (!medicineName) {
       return next(createError(400, 'Medicine name is required'));
     }
-    
+
     // First check database
-    let medicine = await Medicine.findOne({ 
-      name: { $regex: medicineName, $options: 'i' } 
+    let medicine = await Medicine.findOne({
+      name: { $regex: medicineName, $options: 'i' }
     }).populate('personalMedicines.medicine');
-    
+
     // If not found, fetch from comprehensive API
     if (!medicine) {
       const comprehensiveData = await fetchComprehensiveMedicineData(medicineName);
-      
+
       if (comprehensiveData) {
         medicine = await Medicine.create({
           name: comprehensiveData.name,
@@ -236,11 +282,11 @@ export const searchMedicineByName = async (req, res, next) => {
         });
       }
     }
-    
+
     if (!medicine) {
       return next(createError(404, 'Medicine not found'));
     }
-    
+
     res.json({
       status: 'success',
       data: { medicine }
@@ -254,16 +300,16 @@ export const searchMedicineByName = async (req, res, next) => {
 export const getSuggestions = async (req, res, next) => {
   try {
     const { query, limit = 10 } = req.query;
-    
+
     if (!query || query.length < 2) {
       return res.json({
         status: 'success',
         data: { suggestions: [] }
       });
     }
-    
+
     const suggestions = await getMedicineSuggestions(query, parseInt(limit));
-    
+
     res.json({
       status: 'success',
       data: { suggestions }

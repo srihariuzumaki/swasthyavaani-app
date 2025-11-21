@@ -37,7 +37,7 @@ interface MedicineInfo {
 }
 
 const MedicineScanner = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -113,10 +113,11 @@ const MedicineScanner = () => {
       
       // Call API to process the image and get medicine info from trusted sources
       const response = await apiClient.post<MedicineScanResponse>('/medicines/scan', {
-        image: base64Data,
-        useTrustedSources: true, // Ensure we're using trusted sources
-        medicineName: name || medicineName || undefined // Optional medicine name for better accuracy
-      });
+  image: base64Data,
+  useTrustedSources: true,
+  medicineName: name || medicineName || undefined,
+  language: i18n.language // Add this line
+});
       
       console.log('Medicine scan response:', response);
       
