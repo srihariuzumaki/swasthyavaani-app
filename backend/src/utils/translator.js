@@ -18,6 +18,13 @@ export const translateText = async (text, targetLanguage = 'en') => {
     return translationCache.get(cacheKey);
   }
 
+  // Check if translateFn is available
+  if (!translateFn || typeof translateFn !== 'function') {
+    console.warn(`Translation function not available for lang ${lang}, returning original text`);
+    translationCache.set(cacheKey, text);
+    return text;
+  }
+
   try {
     const result = await translateFn(text, { to: lang });
     translationCache.set(cacheKey, result.text);
