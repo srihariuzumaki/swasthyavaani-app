@@ -38,15 +38,42 @@ router.get('/', [
 
         // If searching, try comprehensive API first
         if (search) {
-            const { fetchComprehensiveMedicineData } = await import('../utils/medlinePlusService.js');
+            const { fetchComprehensiveMedicineData, fetchMedicineTranslation } = await import('../utils/medlinePlusService.js');
+
+            // If language is not English, try to get direct translation from Gemini first
+            if (lang && lang !== 'en') {
+                const translatedData = await fetchMedicineTranslation(search, lang);
+                if (translatedData) {
+                    // Return translated data directly without saving to avoid mixing languages in main DB fields
+                    // We wrap it in the expected response structure
+                    return res.json({
+                        status: 'success',
+                        data: {
+                            medicines: [{
+                                ...translatedData,
+                                _id: 'temp_' + Date.now(), // Temporary ID
+                                isActive: true
+                            }],
+                            pagination: {
+                                currentPage: 1,
+                                totalPages: 1,
+                                totalMedicines: 1,
+                                hasNext: false,
+                                hasPrev: false,
+                            },
+                        },
+                    });
+                }
+            }
+
             const medicineData = await fetchComprehensiveMedicineData(search);
-            
+
             if (medicineData && medicineData.name) {
                 // Create or update medicine in database
-                let medicine = await Medicine.findOne({ 
-                    name: { $regex: medicineData.name, $options: 'i' } 
+                let medicine = await Medicine.findOne({
+                    name: { $regex: medicineData.name, $options: 'i' }
                 });
-                
+
                 if (!medicine) {
                     medicine = await Medicine.create({
                         name: medicineData.name.substring(0, 100),
@@ -67,7 +94,7 @@ router.get('/', [
                         isPrescriptionRequired: medicineData.isPrescriptionRequired || false,
                     });
                 }
-                
+
                 const translatedMedicine = await getTranslatedMedicine(medicine, lang);
                 return res.json({
                     status: 'success',

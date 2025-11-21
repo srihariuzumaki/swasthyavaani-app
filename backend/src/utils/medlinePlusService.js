@@ -5,7 +5,7 @@
 
 const MEDLINEPLUS_API_BASE = 'https://connect.medlineplus.gov/service';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
 
 // Valid category enum values - must match Medicine model
 const VALID_CATEGORIES = [
@@ -333,7 +333,8 @@ Important: Give specific information about this medicine. Return ONLY valid JSON
 
     // Check if response is ok before parsing
     if (!response.ok) {
-      console.log(`Gemini API returned status ${response.status}, using fallback for ${medicineName}`);
+      const errorText = await response.text();
+      console.log(`Gemini API returned status ${response.status}, using fallback for ${medicineName}. Error: ${errorText}`);
       return null;
     }
 
@@ -368,11 +369,25 @@ export const fetchComprehensiveMedicineData = async (medicineName) => {
   try {
     // First, try to get from RxNav API (comprehensive universal database - works for ANY medicine)
     let medicineData = await fetchMedicineFromMedlinePlus(medicineName);
+    let richData = null;
 
-    // If API has data, enhance it with local database details
+    // Try Gemini AI for medicine information regardless of RxNav result
+    // This ensures we get rich display data (dosage, usage, etc.) even if RxNav found the basic identity
+    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
+      console.warn('⚠️ GEMINI_API_KEY is missing or invalid. Detailed medicine info will be generic.');
+    } else {
+      try {
+        richData = await fetchFromGemini(medicineName);
+      } catch (err) {
+        console.error('Gemini fetch failed:', err);
+      }
+    }
+
+    // If API has data, enhance it with local database details or Gemini data
     if (medicineData && medicineData.rxcui) {
       const localData = getComprehensiveMedicineData(medicineName);
-      // Merge API data with local enhancements
+
+      // If we have local curated data, that's the best source
       if (localData) {
         return {
           ...localData,
@@ -381,7 +396,26 @@ export const fetchComprehensiveMedicineData = async (medicineName) => {
           rxcui: medicineData.rxcui
         };
       }
-      // Return basic structure from API
+
+      // If we have Gemini data, merge it into RxNav data to replace generic fields
+      if (richData && richData.description) {
+        return {
+          ...medicineData, // Keep RxNav identity
+          description: richData.description || medicineData.description,
+          usage: richData.usage || medicineData.usage,
+          dosage: richData.dosage || medicineData.dosage,
+          sideEffects: richData.sideEffects || medicineData.sideEffects,
+          ageRestrictions: richData.ageRestrictions || medicineData.ageRestrictions,
+          precautions: richData.precautions || medicineData.precautions,
+          contraindications: richData.contraindications || medicineData.contraindications,
+          interactions: richData.interactions || medicineData.interactions,
+          warnings: richData.warnings || medicineData.warnings,
+          storageInstructions: richData.storageInstructions || medicineData.storageInstructions,
+          category: normalizeCategory(richData.category) || medicineData.category,
+        };
+      }
+
+      // Return basic structure from API (with generic fallbacks if no Gemini)
       return createBasicMedicineStructure(medicineData.name, medicineData.genericName);
     }
 
@@ -401,39 +435,31 @@ export const fetchComprehensiveMedicineData = async (medicineName) => {
         }
       }
 
-      // Try Gemini AI for medicine information
-      // Check if API key is configured
-      if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
-        console.warn('⚠️ GEMINI_API_KEY is missing or invalid. Detailed medicine info will be generic.');
-        // We continue to fallback, but log the warning
-      } else {
-        const geminiData = await fetchFromGemini(medicineName);
-
-        if (geminiData && geminiData.description) {
-          return {
-            name: medicineName,
-            genericName: geminiData.genericName || genericName || medicineName,
-            category: normalizeCategory(geminiData.category) || 'other',
-            description: geminiData.description || `${medicineName} - Medication`,
-            usage: geminiData.usage || ['As prescribed by healthcare provider'],
-            dosage: geminiData.dosage || {
-              adult: { min: 'As directed', max: 'As directed', frequency: 'As prescribed' },
-              pediatric: { byAge: [{ age: 'Children', dosage: 'Consult doctor' }] }
-            },
-            sideEffects: geminiData.sideEffects || ['Varies by individual'],
-            precautions: geminiData.precautions || ['Follow doctor instructions'],
-            contraindications: ['Known allergies', 'Severe conditions'],
-            interactions: [],
-            warnings: [
-              '⚠️ Consult qualified healthcare professional before use',
-              '⚠️ Do not self-medicate',
-              '⚠️ This info is for reference only'
-            ],
-            storageInstructions: 'Store at room temperature',
-            isPrescriptionRequired: true,
-            image: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=500'
-          };
-        }
+      // Use Gemini data if available (fallback path)
+      if (richData && richData.description) {
+        return {
+          name: medicineName,
+          genericName: richData.genericName || genericName || medicineName,
+          category: normalizeCategory(richData.category) || 'other',
+          description: richData.description || `${medicineName} - Medication`,
+          usage: richData.usage || ['As prescribed by healthcare provider'],
+          dosage: richData.dosage || {
+            adult: { min: 'As directed', max: 'As directed', frequency: 'As prescribed' },
+            pediatric: { byAge: [{ age: 'Children', dosage: 'Consult doctor' }] }
+          },
+          sideEffects: richData.sideEffects || ['Varies by individual'],
+          precautions: richData.precautions || ['Follow doctor instructions'],
+          contraindications: ['Known allergies', 'Severe conditions'],
+          interactions: [],
+          warnings: [
+            '⚠️ Consult qualified healthcare professional before use',
+            '⚠️ Do not self-medicate',
+            '⚠️ This info is for reference only'
+          ],
+          storageInstructions: 'Store at room temperature',
+          isPrescriptionRequired: true,
+          image: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=500'
+        };
       }
 
       // Fallback to basic structure if Gemini fails or is missing
@@ -458,13 +484,92 @@ export const fetchComprehensiveMedicineData = async (medicineName) => {
 };
 
 /**
+ * Fetch medicine information in a specific language using Gemini AI
+ * @param {string} medicineName - Name of the medicine
+ * @param {string} language - Target language code (e.g., 'hi', 'ta', 'te')
+ * @returns {Promise<Object>} Translated medicine data
+ */
+export const fetchMedicineTranslation = async (medicineName, language) => {
+  try {
+    if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
+      return null;
+    }
+
+    // Map language code to full name for better prompting
+    const languageMap = {
+      'hi': 'Hindi',
+      'ta': 'Tamil',
+      'te': 'Telugu',
+      'bn': 'Bengali',
+      'mr': 'Marathi',
+      'gu': 'Gujarati',
+      'kn': 'Kannada',
+      'en': 'English'
+    };
+
+    const targetLanguage = languageMap[language] || language;
+    console.log(`Fetching ${targetLanguage} translation for: ${medicineName}`);
+
+    const prompt = `Provide detailed medical information for "${medicineName}" in ${targetLanguage} language.
+    Return valid JSON with the following structure (ensure ALL text values are in ${targetLanguage}):
+    {
+      "name": "${medicineName} (in ${targetLanguage})",
+      "genericName": "generic name in ${targetLanguage}",
+      "description": "detailed description in ${targetLanguage}",
+      "usage": ["use 1 in ${targetLanguage}", "use 2 in ${targetLanguage}"],
+      "dosage": {
+        "adult": { "min": "value in ${targetLanguage}", "max": "value", "frequency": "frequency in ${targetLanguage}" },
+        "pediatric": { "byAge": [{ "age": "age range in ${targetLanguage}", "dosage": "dosage in ${targetLanguage}" }] }
+      },
+      "sideEffects": ["effect 1 in ${targetLanguage}", "effect 2 in ${targetLanguage}"],
+      "precautions": ["precaution 1 in ${targetLanguage}"],
+      "contraindications": ["contraindication 1 in ${targetLanguage}"],
+      "warnings": ["warning 1 in ${targetLanguage}"],
+      "storageInstructions": "storage instructions in ${targetLanguage}",
+      "category": "category (keep in English for mapping, e.g. antibiotic, analgesic)"
+    }
+    Important: Return ONLY valid JSON. Ensure the content is natural and accurate in ${targetLanguage}.`;
+
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+      const text = data.candidates[0].content.parts[0].text;
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          const parsedData = JSON.parse(jsonMatch[0]);
+          // Ensure category is normalized (Gemini might translate it despite instructions)
+          parsedData.category = normalizeCategory(parsedData.category);
+          // Add image (Gemini doesn't generate images, use placeholder or search)
+          parsedData.image = 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=500';
+          return parsedData;
+        } catch (e) {
+          console.error('Error parsing translation JSON:', e);
+        }
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching translation:', error);
+    return null;
+  }
+};
+
+/**
  * Create basic medicine structure for any medicine name
  * This ensures we always return structured data even if not in database
  * @param {string} medicineName - Name of the medicine
  * @param {string} genericName - Generic name (optional)
  * @returns {Object} Basic medicine structure
  */
-const createBasicMedicineStructure = (medicineName, genericName = null) => {
+function createBasicMedicineStructure(medicineName, genericName = null) {
   const normalizedName = medicineName.toLowerCase();
 
   // Detect category and generic name from brand name
