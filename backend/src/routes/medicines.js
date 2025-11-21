@@ -39,33 +39,6 @@ router.get('/', [
         // If searching, try comprehensive API first
         if (search) {
             const { fetchComprehensiveMedicineData, fetchMedicineTranslation } = await import('../utils/medlinePlusService.js');
-
-            // If language is not English, try to get direct translation from Gemini first
-            if (lang && lang !== 'en') {
-                const translatedData = await fetchMedicineTranslation(search, lang);
-                if (translatedData) {
-                    // Return translated data directly without saving to avoid mixing languages in main DB fields
-                    // We wrap it in the expected response structure
-                    return res.json({
-                        status: 'success',
-                        data: {
-                            medicines: [{
-                                ...translatedData,
-                                _id: 'temp_' + Date.now(), // Temporary ID
-                                isActive: true
-                            }],
-                            pagination: {
-                                currentPage: 1,
-                                totalPages: 1,
-                                totalMedicines: 1,
-                                hasNext: false,
-                                hasPrev: false,
-                            },
-                        },
-                    });
-                }
-            }
-
             const medicineData = await fetchComprehensiveMedicineData(search);
 
             if (medicineData && medicineData.name) {
@@ -93,6 +66,36 @@ router.get('/', [
                         precautions: medicineData.precautions,
                         isPrescriptionRequired: medicineData.isPrescriptionRequired || false,
                     });
+                }
+
+                // If language is not English, try to get direct translation from Gemini
+                // We do this AFTER getting/creating the medicine so we have a valid _id
+                if (lang && lang !== 'en') {
+                    const translatedData = await fetchMedicineTranslation(medicine.name, lang);
+                    if (translatedData) {
+                        // Merge translated data with the real medicine object (preserving _id)
+                        const responseMedicine = {
+                            ...medicine.toObject(),
+                            ...translatedData,
+                            _id: medicine._id, // Explicitly preserve the real MongoDB ID
+                            // Ensure these specific fields are arrays if they came back as such
+                            usage: Array.isArray(translatedData.usage) ? translatedData.usage : [translatedData.usage],
+                        };
+
+                        return res.json({
+                            status: 'success',
+                            data: {
+                                medicines: [responseMedicine],
+                                pagination: {
+                                    currentPage: 1,
+                                    totalPages: 1,
+                                    totalMedicines: 1,
+                                    hasNext: false,
+                                    hasPrev: false,
+                                },
+                            },
+                        });
+                    }
                 }
 
                 const translatedMedicine = await getTranslatedMedicine(medicine, lang);
