@@ -58,6 +58,7 @@ router.post('/speech-to-text', [
 
     // If no API key, always return mock text (pure demo mode)
     if (!apiKey) {
+      console.warn('⚠️ SARVAM_API_KEY is missing. Voice features running in DEMO mode.');
       return res.status(200).json({
         status: 'success',
         text: mockTexts[language] || mockTexts['en-IN'],
@@ -183,7 +184,7 @@ router.post('/text-to-speech', [
       }
 
       const audioBuffer = Buffer.from(audioBase64, 'base64');
-      
+
       res.setHeader('Content-Type', 'audio/mpeg');
       res.setHeader('Content-Length', audioBuffer.byteLength);
       return res.status(200).send(audioBuffer);

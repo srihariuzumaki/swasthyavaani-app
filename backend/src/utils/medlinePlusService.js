@@ -21,14 +21,14 @@ const VALID_CATEGORIES = [
  */
 const normalizeCategory = (category) => {
   if (!category) return 'other';
-  
+
   const normalized = category.toLowerCase().trim();
-  
+
   // Direct match
   if (VALID_CATEGORIES.includes(normalized)) {
     return normalized;
   }
-  
+
   // Map common variations and synonyms
   const categoryMapping = {
     'diabetic': 'diabetes',
@@ -49,18 +49,18 @@ const normalizeCategory = (category) => {
     'vitamin supplement': 'vitamin',
     'supplement': 'supplement'
   };
-  
+
   if (categoryMapping[normalized]) {
     return categoryMapping[normalized];
   }
-  
+
   // Check if category contains any valid category keywords
   for (const validCategory of VALID_CATEGORIES) {
     if (normalized.includes(validCategory) || validCategory.includes(normalized)) {
       return validCategory;
     }
   }
-  
+
   // Default to 'other' for any unrecognized category
   return 'other';
 };
@@ -74,24 +74,24 @@ const normalizeCategory = (category) => {
 // Helper function to clean and truncate medicine names
 const cleanMedicineName = (name) => {
   if (!name) return name;
-  
+
   // Remove RxNav metadata in braces
   let cleaned = name.replace(/\{[^}]+\}/g, '').trim();
-  
+
   // Extract brand name if in brackets
   const brandMatch = cleaned.match(/\[([^\]]+)\]/);
   if (brandMatch) {
     cleaned = brandMatch[1];
   }
-  
+
   // Take first part before '/' if contains multiple medicines
   cleaned = cleaned.split('/')[0].trim();
-  
+
   // Truncate to 80 characters max
   if (cleaned.length > 80) {
     cleaned = cleaned.substring(0, 80);
   }
-  
+
   return cleaned || name.substring(0, 80);
 };
 
@@ -100,25 +100,25 @@ export const getMedicineSuggestions = async (query, limit = 10) => {
     if (!query || query.length < 2) {
       return [];
     }
-    
+
     const searchUrl = `https://rxnav.nlm.nih.gov/REST/spellingsuggestions.json?name=${encodeURIComponent(query)}`;
     const response = await fetch(searchUrl);
     const data = await response.json();
-    
+
     let suggestions = [];
-    
+
     // Get spelling suggestions
     if (data.suggestionGroup && data.suggestionGroup.suggestionList) {
       const rawSuggestions = data.suggestionGroup.suggestionList.suggestion || [];
       // Clean each suggestion
       suggestions = rawSuggestions.map(s => cleanMedicineName(s)).filter(s => s.length > 0);
     }
-    
+
     // Also search for drugs with similar names
     const drugSearchUrlAlt = `https://rxnav.nlm.nih.gov/REST/drugs.json?name=${encodeURIComponent(query)}`;
     const drugResponseAlt = await fetch(drugSearchUrlAlt);
     const drugDataAlt = await drugResponseAlt.json();
-    
+
     if (drugDataAlt.drugGroup && drugDataAlt.drugGroup.conceptGroup) {
       drugDataAlt.drugGroup.conceptGroup.forEach(group => {
         if (group.conceptProperties) {
@@ -131,7 +131,7 @@ export const getMedicineSuggestions = async (query, limit = 10) => {
         }
       });
     }
-    
+
     // Remove duplicates and limit results
     const uniqueSuggestions = [...new Set(suggestions)].filter(s => s.length <= 80);
     return uniqueSuggestions.slice(0, limit);
@@ -151,7 +151,7 @@ const searchRxNav = async (medicineName) => {
     const searchUrl = `https://rxnav.nlm.nih.gov/REST/drugs.json?name=${encodeURIComponent(medicineName)}`;
     const response = await fetch(searchUrl);
     const data = await response.json();
-    
+
     if (data.drugGroup && data.drugGroup.conceptGroup && data.drugGroup.conceptGroup.length > 0) {
       const concepts = data.drugGroup.conceptGroup;
       const firstConcept = concepts[0].conceptProperties[0];
@@ -175,12 +175,12 @@ const getDrugDetails = async (rxcui) => {
     const propertiesUrl = `https://rxnav.nlm.nih.gov/REST/rxcui/${rxcui}/properties.json`;
     const propertiesResponse = await fetch(propertiesUrl);
     const properties = await propertiesResponse.json();
-    
+
     // Get drug interactions
     const interactionsUrl = `https://rxnav.nlm.nih.gov/REST/rxcui/${rxcui}/interactions.json`;
     const interactionsResponse = await fetch(interactionsUrl);
     const interactions = await interactionsResponse.json();
-    
+
     return {
       properties: properties.properties || {},
       interactions: interactions.interactionTypeGroup || []
@@ -200,10 +200,10 @@ export const fetchMedicineFromMedlinePlus = async (medicineName) => {
   try {
     // Try RxNav API first
     const rxNavResult = await searchRxNav(medicineName);
-    
+
     if (rxNavResult) {
       const drugDetails = await getDrugDetails(rxNavResult.rxcui);
-      
+
       // Build comprehensive medicine data from API
       return {
         name: rxNavResult.name,
@@ -229,7 +229,7 @@ export const fetchMedicineFromMedlinePlus = async (medicineName) => {
         isPrescriptionRequired: true
       };
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error fetching from API:', error);
@@ -247,7 +247,7 @@ const parseMedlinePlusXML = (xmlData, medicineName) => {
   try {
     // For now, return structured data based on medicine name
     // In production, you would parse the XML properly
-    
+
     // This is a simplified parser. For production, use proper XML parser like xml2js
     const medicineData = {
       name: medicineName,
@@ -299,9 +299,9 @@ const fetchFromGemini = async (medicineName) => {
       console.log('⚠️ Gemini API key not configured - skipping AI-powered search');
       return null;
     }
-    
+
     console.log(`Calling Gemini API for: ${medicineName}`);
-    
+
     const prompt = `Provide detailed medical information for "${medicineName}" in valid JSON format:
 {
   "description": "2-3 sentence detailed description of what this medicine is and what it does",
@@ -313,10 +313,10 @@ const fetchFromGemini = async (medicineName) => {
   "category": "category"
 }
 Important: Give specific information about this medicine. Return ONLY valid JSON, no other text.`;
-    
+
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
@@ -324,21 +324,21 @@ Important: Give specific information about this medicine. Return ONLY valid JSON
       },
       body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
     });
-    
+
     // Handle 304 Not Modified by returning null to use fallback
     if (response.status === 304 || response.status === 429) {
       console.log(`Gemini API returned ${response.status}, using fallback for ${medicineName}`);
       return null;
     }
-    
+
     // Check if response is ok before parsing
     if (!response.ok) {
       console.log(`Gemini API returned status ${response.status}, using fallback for ${medicineName}`);
       return null;
     }
-    
+
     const data = await response.json();
-    
+
     if (data.candidates && data.candidates[0] && data.candidates[0].content) {
       const text = data.candidates[0].content.parts[0].text;
       const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -368,7 +368,7 @@ export const fetchComprehensiveMedicineData = async (medicineName) => {
   try {
     // First, try to get from RxNav API (comprehensive universal database - works for ANY medicine)
     let medicineData = await fetchMedicineFromMedlinePlus(medicineName);
-    
+
     // If API has data, enhance it with local database details
     if (medicineData && medicineData.rxcui) {
       const localData = getComprehensiveMedicineData(medicineName);
@@ -384,10 +384,10 @@ export const fetchComprehensiveMedicineData = async (medicineName) => {
       // Return basic structure from API
       return createBasicMedicineStructure(medicineData.name, medicineData.genericName);
     }
-    
+
     // If API doesn't have data, try local database
     medicineData = getComprehensiveMedicineData(medicineName);
-    
+
     // If not in local database, check brand name mapping
     if (!medicineData) {
       const genericName = BRAND_TO_GENERIC[medicineName.toLowerCase()];
@@ -400,47 +400,55 @@ export const fetchComprehensiveMedicineData = async (medicineName) => {
           return medicineData;
         }
       }
+
       // Try Gemini AI for medicine information
-      const geminiData = await fetchFromGemini(medicineName);
-      
-      if (geminiData && geminiData.description) {
-        medicineData = {
-          name: medicineName,
-          genericName: geminiData.genericName || genericName || medicineName,
-          category: normalizeCategory(geminiData.category) || 'other',
-          description: geminiData.description || `${medicineName} - Medication`,
-          usage: geminiData.usage || ['As prescribed by healthcare provider'],
-          dosage: geminiData.dosage || {
-            adult: { min: 'As directed', max: 'As directed', frequency: 'As prescribed' },
-            pediatric: { byAge: [{ age: 'Children', dosage: 'Consult doctor' }] }
-          },
-          sideEffects: geminiData.sideEffects || ['Varies by individual'],
-          precautions: geminiData.precautions || ['Follow doctor instructions'],
-          contraindications: ['Known allergies', 'Severe conditions'],
-          interactions: [],
-          warnings: [
-            '⚠️ Consult qualified healthcare professional before use',
-            '⚠️ Do not self-medicate',
-            '⚠️ This info is for reference only'
-          ],
-          storageInstructions: 'Store at room temperature',
-          isPrescriptionRequired: true,
-          image: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=500'
-        };
+      // Check if API key is configured
+      if (!GEMINI_API_KEY || GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY') {
+        console.warn('⚠️ GEMINI_API_KEY is missing or invalid. Detailed medicine info will be generic.');
+        // We continue to fallback, but log the warning
       } else {
-        medicineData = createBasicMedicineStructure(medicineName);
-        if (genericName) {
-          medicineData.genericName = genericName;
-          const category = getCategoryFromName(genericName);
-          medicineData.category = normalizeCategory(category);
-          medicineData.usage = getUsageFromName(genericName);
-          medicineData.dosage = getDosageFromName(genericName);
-          medicineData.sideEffects = getSideEffectsFromName(genericName);
-          medicineData.precautions = getPrecautionsFromName(genericName);
+        const geminiData = await fetchFromGemini(medicineName);
+
+        if (geminiData && geminiData.description) {
+          return {
+            name: medicineName,
+            genericName: geminiData.genericName || genericName || medicineName,
+            category: normalizeCategory(geminiData.category) || 'other',
+            description: geminiData.description || `${medicineName} - Medication`,
+            usage: geminiData.usage || ['As prescribed by healthcare provider'],
+            dosage: geminiData.dosage || {
+              adult: { min: 'As directed', max: 'As directed', frequency: 'As prescribed' },
+              pediatric: { byAge: [{ age: 'Children', dosage: 'Consult doctor' }] }
+            },
+            sideEffects: geminiData.sideEffects || ['Varies by individual'],
+            precautions: geminiData.precautions || ['Follow doctor instructions'],
+            contraindications: ['Known allergies', 'Severe conditions'],
+            interactions: [],
+            warnings: [
+              '⚠️ Consult qualified healthcare professional before use',
+              '⚠️ Do not self-medicate',
+              '⚠️ This info is for reference only'
+            ],
+            storageInstructions: 'Store at room temperature',
+            isPrescriptionRequired: true,
+            image: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=500'
+          };
         }
       }
+
+      // Fallback to basic structure if Gemini fails or is missing
+      medicineData = createBasicMedicineStructure(medicineName);
+      if (genericName) {
+        medicineData.genericName = genericName;
+        const category = getCategoryFromName(genericName);
+        medicineData.category = normalizeCategory(category);
+        medicineData.usage = getUsageFromName(genericName);
+        medicineData.dosage = getDosageFromName(genericName);
+        medicineData.sideEffects = getSideEffectsFromName(genericName);
+        medicineData.precautions = getPrecautionsFromName(genericName);
+      }
     }
-    
+
     return medicineData;
   } catch (error) {
     console.error('Error fetching comprehensive medicine data:', error);
@@ -458,11 +466,11 @@ export const fetchComprehensiveMedicineData = async (medicineName) => {
  */
 const createBasicMedicineStructure = (medicineName, genericName = null) => {
   const normalizedName = medicineName.toLowerCase();
-  
+
   // Detect category and generic name from brand name
   let detectedCategory = 'other';
   let detectedGeneric = genericName || medicineName;
-  
+
   if (normalizedName.includes('mahacef') || normalizedName.includes('cefix')) {
     detectedCategory = 'antibiotic';
     detectedGeneric = 'Cefixime';
@@ -479,14 +487,14 @@ const createBasicMedicineStructure = (medicineName, genericName = null) => {
     detectedCategory = 'anti-inflammatory';
     detectedGeneric = 'Ibuprofen';
   }
-  
+
   // Get category-specific info
   const category = normalizeCategory(detectedCategory === 'other' ? getCategoryFromName(medicineName) : detectedCategory);
   const usage = getUsageFromName(category === 'other' ? medicineName : category);
   const dosage = getDosageFromName(category === 'other' ? medicineName : category);
   const sideEffects = getSideEffectsFromName(category === 'other' ? medicineName : category);
   const precautions = getPrecautionsFromName(category === 'other' ? medicineName : category);
-  
+
   return {
     name: medicineName,
     genericName: detectedGeneric,
@@ -532,7 +540,7 @@ const createBasicMedicineStructure = (medicineName, genericName = null) => {
  */
 const getComprehensiveMedicineData = (medicineName) => {
   const normalizedName = medicineName.toLowerCase();
-  
+
   // Comprehensive medicine database with 50+ common medicines
   const medicinesDatabase = {
     'paracetamol': {
@@ -676,7 +684,7 @@ const getComprehensiveMedicineData = (medicineName) => {
       ]
     }
   };
-  
+
   // Return medicine data if found, otherwise return null
   for (const [key, value] of Object.entries(medicinesDatabase)) {
     if (normalizedName.includes(key)) {
@@ -687,7 +695,7 @@ const getComprehensiveMedicineData = (medicineName) => {
       return value;
     }
   }
-  
+
   return null;
 };
 
@@ -701,7 +709,7 @@ const extractGenericName = (name) => {
     'advil': 'Ibuprofen',
     'cetirizine': 'Cetirizine',
   };
-  
+
   return mappings[name.toLowerCase()] || name;
 };
 
@@ -753,7 +761,7 @@ const getDetailedDescription = (medicineName, genericName, category) => {
     'anti-inflammatory': `${medicineName} contains ${genericName}, a medication that reduces inflammation, swelling, and pain in the body.`,
     'other': `${medicineName}${genericName !== medicineName ? ` (${genericName})` : ''} is a pharmaceutical medication. Always consult with a healthcare professional to understand its specific uses and proper administration for your condition.`
   };
-  
+
   return descriptions[category] || descriptions['other'];
 };
 
