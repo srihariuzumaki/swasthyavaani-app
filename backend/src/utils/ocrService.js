@@ -1,13 +1,12 @@
 /**
  * Advanced OCR Service
- * Open-source OCR pipeline using EasyOCR + image preprocessing
- * No billing required - completely free!
+ * Calls Python OCR microservice (Railway) for text extraction
+ * No local Python dependencies needed!
  */
 
-import { extractTextWithEasyOCR, isEasyOCRAvailable } from './easyOcrService.js';
+import { callOcrService, isOcrServiceAvailable } from './ocrClient.js';
 import { validateOcrText, extractStructuredData as geminiExtractStructuredData, detectScanType as geminiDetectScanType, isGeminiAvailable } from './geminiAiService.js';
 import { extractAllStructuredData, autoDetectScanType, fuzzyMatchMedicineName } from './structuredDataExtractor.js';
-import { preprocessMedicineLabel } from './imagePreprocessor.js';
 import { calculateOverallConfidence, getConfidenceLevel } from './confidenceScorer.js';
 
 const OCR_CONFIDENCE_THRESHOLD = parseFloat(process.env.OCR_CONFIDENCE_THRESHOLD) || 0.7;
@@ -59,42 +58,31 @@ export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRe
     }
   }
 
-  // Preprocess image for better OCR accuracy
-  console.log('Preprocessing image for OCR...');
-  try {
-    optimizedImage = await preprocessMedicineLabel(optimizedImage, {
-      denoise: true,
-      enhanceContrast: true,
-      autoRotate: true,
-      advanced: false // Set to true for very low quality images
-    });
-    console.log('Image preprocessing complete');
-  } catch (preprocessError) {
-    console.error('Preprocessing failed, using original image:', preprocessError.message);
-  }
+  // Image preprocessing is now handled by the OCR microservice
+  // No need for local preprocessing
 
-  // Use EasyOCR as primary OCR engine (FREE & open-source!)
-  if (await isEasyOCRAvailable()) {
+  // Call OCR microservice (Railway)
+  if (await isOcrServiceAvailable()) {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         if (attempt > 0) {
           const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-          console.log(`Retrying EasyOCR (attempt ${attempt + 1}/${maxRetries + 1}) after ${delay}ms...`);
+          console.log(`Retrying OCR microservice (attempt ${attempt + 1}/${maxRetries + 1}) after ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
 
-        console.log(`Attempting EasyOCR (attempt ${attempt + 1}/${maxRetries + 1})...`);
+        console.log(`Calling OCR microservice (attempt ${attempt + 1}/${maxRetries + 1})...`);
 
         // Use multiple languages for better accuracy on Indian medicine labels
         const languages = ['en', 'hi']; // English + Hindi
-        const result = await extractTextWithEasyOCR(optimizedImage, languages);
+        const result = await callOcrService(optimizedImage, languages, true, scanType);
 
         if (result.text && result.text.trim().length > 0) {
-          console.log(`EasyOCR extracted ${result.text.length} characters with ${result.confidence.toFixed(2)} confidence`);
+          console.log(`OCR microservice extracted ${result.text.length} characters with ${result.confidence.toFixed(2)} confidence`);
           return {
             text: result.text,
             confidence: result.confidence,
-            engine: 'easyocr',
+            engine: 'easyocr-microservice',
             features: {},
             blocks: result.blocks || [],
           };
@@ -105,7 +93,7 @@ export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRe
           continue;
         }
       } catch (error) {
-        console.error(`EasyOCR error (attempt ${attempt + 1}):`, error.message);
+        console.error(`OCR microservice error (attempt ${attempt + 1}):`, error.message);
         lastError = error;
 
         if (attempt < maxRetries) {
@@ -114,14 +102,15 @@ export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRe
       }
     }
   } else {
-    console.log('EasyOCR not available');
+    console.log('OCR microservice not available');
+    lastError = new Error('OCR microservice is not available. Please check OCR_SERVICE_URL environment variable.');
   }
 
   // If OCR failed
   throw new Error(
     lastError
       ? `OCR failed: ${lastError.message}`
-      : 'EasyOCR is not available. Please ensure Python and EasyOCR are installed.'
+      : 'OCR microservice is not available. Please check OCR_SERVICE_URL environment variable.'
   );
 };
 
