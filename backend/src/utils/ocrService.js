@@ -7,6 +7,7 @@
 import { extractTextWithEasyOCR, isEasyOCRAvailable } from './easyOcrService.js';
 import { validateOcrText, extractStructuredData as geminiExtractStructuredData, detectScanType as geminiDetectScanType, isGeminiAvailable } from './geminiAiService.js';
 import { extractAllStructuredData, autoDetectScanType } from './structuredDataExtractor.js';
+import { preprocessMedicineLabel } from './imagePreprocessor.js';
 
 const OCR_CONFIDENCE_THRESHOLD = parseFloat(process.env.OCR_CONFIDENCE_THRESHOLD) || 0.7;
 
@@ -55,6 +56,20 @@ export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRe
     } catch (compressionError) {
       console.error('Image compression failed:', compressionError.message);
     }
+  }
+
+  // Preprocess image for better OCR accuracy
+  console.log('Preprocessing image for OCR...');
+  try {
+    optimizedImage = await preprocessMedicineLabel(optimizedImage, {
+      denoise: true,
+      enhanceContrast: true,
+      autoRotate: true,
+      advanced: false // Set to true for very low quality images
+    });
+    console.log('Image preprocessing complete');
+  } catch (preprocessError) {
+    console.error('Preprocessing failed, using original image:', preprocessError.message);
   }
 
   // Use EasyOCR as primary OCR engine (FREE & open-source!)
