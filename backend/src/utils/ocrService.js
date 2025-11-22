@@ -84,7 +84,9 @@ export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRe
 
         console.log(`Attempting EasyOCR (attempt ${attempt + 1}/${maxRetries + 1})...`);
 
-        const result = await extractTextWithEasyOCR(optimizedImage, ['en']);
+        // Use multiple languages for better accuracy on Indian medicine labels
+        const languages = ['en', 'hi']; // English + Hindi
+        const result = await extractTextWithEasyOCR(optimizedImage, languages);
 
         if (result.text && result.text.trim().length > 0) {
           console.log(`EasyOCR extracted ${result.text.length} characters with ${result.confidence.toFixed(2)} confidence`);
