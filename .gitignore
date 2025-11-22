@@ -10,8 +10,7 @@ lerna-debug.log*
 .env.backup
 ./backend/.env
 ./backend/.env.backup
-./ocr-service/.env
-./ocr-service/.env.backup
+
 
 
 node_modules
