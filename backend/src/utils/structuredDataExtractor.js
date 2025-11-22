@@ -1,7 +1,11 @@
 /**
  * Structured Data Extractor
  * Pattern-based extraction of structured information from OCR text
+ * Enhanced with fuzzy matching and validation
  */
+
+import fuzz from 'fuzzball';
+import { parse, isValid, isFuture, isPast, format } from 'date-fns';
 
 /**
  * Extract medicine names using pattern matching
@@ -61,19 +65,58 @@ export const extractDosage = (text) => {
 };
 
 /**
- * Extract expiry date
+ * Extract expiry date with multiple format support
  */
 export const extractExpiryDate = (text) => {
     const expiryPatterns = [
-        /(?:exp(?:iry)?|use before|best before)[\s:]*(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/gi,
-        /(?:exp(?:iry)?|use before|best before)[\s:]*([A-Z]{3}[-/\s]\d{2,4})/gi,
-        /(\d{1,2}[-/]\d{4})/g, // MM/YYYY or MM-YYYY
+        // With keywords
+        /(?:exp(?:iry)?|use before|best before|expiry date|exp date)[\s:.]*(\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})/gi,
+        /(?:exp(?:iry)?|use before|best before)[\s:.]*(\d{1,2}[-/.]\d{4})/gi,
+        /(?:exp(?:iry)?|use before|best before)[\s:.]*([A-Z]{3}[-/.\s]\d{2,4})/gi,
+        // Without keywords (common formats)
+        /(\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})/g, // DD/MM/YYYY
+        /(\d{1,2}[-/.]\d{4})/g, // MM/YYYY
+        /([A-Z]{3}[-/.\s]\d{2,4})/g, // MMM-YYYY
     ];
 
     for (const pattern of expiryPatterns) {
-        const match = text.match(pattern);
-        if (match) {
-            return match[0].replace(/^(?:exp(?:iry)?|use before|best before)[\s:]*/gi, '').trim();
+        const matches = text.match(pattern);
+        if (matches) {
+            for (const match of matches) {
+                const cleaned = match.replace(/^(?:exp(?:iry)?|use before|best before|expiry date|exp date)[\s:.]*/gi, '').trim();
+                // Validate it's a future date
+                const parsedDate = parseDate(cleaned);
+                if (parsedDate && isFuture(parsedDate)) {
+                    return cleaned;
+                }
+            }
+        }
+    }
+
+    return null;
+};
+
+/**
+ * Extract manufacturing date
+ */
+export const extractManufacturingDate = (text) => {
+    const mfgPatterns = [
+        /(?:mfg|mfd|manufactured|manufacturing date|mfg date)[\s:.]*(\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4})/gi,
+        /(?:mfg|mfd|manufactured)[\s:.]*(\d{1,2}[-/.]\d{4})/gi,
+        /(?:mfg|mfd|manufactured)[\s:.]*([A-Z]{3}[-/.\s]\d{2,4})/gi,
+    ];
+
+    for (const pattern of mfgPatterns) {
+        const matches = text.match(pattern);
+        if (matches) {
+            for (const match of matches) {
+                const cleaned = match.replace(/^(?:mfg|mfd|manufactured|manufacturing date|mfg date)[\s:.]*/gi, '').trim();
+                // Validate it's a past date
+                const parsedDate = parseDate(cleaned);
+                if (parsedDate && isPast(parsedDate)) {
+                    return cleaned;
+                }
+            }
         }
     }
 
@@ -85,14 +128,19 @@ export const extractExpiryDate = (text) => {
  */
 export const extractBatchNumber = (text) => {
     const batchPatterns = [
-        /(?:batch|lot|b\.?no\.?)[\s:]*([A-Z0-9]+)/gi,
-        /\b(BATCH[A-Z0-9]+)\b/gi,
+        /(?:batch|lot|b\.?no\.?|batch no|lot no)[\s:.]*(\w{4,})/gi,
+        /\b(BATCH\w+)\b/gi,
+        /\b(LOT\w+)\b/gi,
     ];
 
     for (const pattern of batchPatterns) {
         const match = text.match(pattern);
         if (match) {
-            return match[0].replace(/^(?:batch|lot|b\.?no\.?)[\s:]*/gi, '').trim();
+            const cleaned = match[0].replace(/^(?:batch|lot|b\.?no\.?|batch no|lot no)[\s:.]*/gi, '').trim();
+            // Batch numbers are usually 6-12 characters
+            if (cleaned.length >= 4 && cleaned.length <= 15) {
+                return cleaned;
+            }
         }
     }
 
@@ -149,6 +197,37 @@ export const autoDetectScanType = (text, features = {}) => {
 };
 
 /**
+ * Fuzzy match medicine name against database
+ * @param {string} ocrName - Name extracted from OCR
+ * @param {Array} database - Array of known medicine names
+ * @param {number} threshold - Minimum similarity score (0-100)
+ * @returns {object} Best match with score
+ */
+export const fuzzyMatchMedicineName = (ocrName, database, threshold = 70) => {
+    if (!ocrName || !database || database.length === 0) {
+        return { name: ocrName, score: 0, matched: false };
+    }
+
+    const results = fuzz.extract(ocrName, database, {
+        scorer: fuzz.token_set_ratio,
+        limit: 5,
+        cutoff: threshold
+    });
+
+    if (results.length > 0) {
+        const bestMatch = results[0];
+        return {
+            name: bestMatch[0],
+            score: bestMatch[1],
+            matched: true,
+            alternatives: results.slice(1, 3).map(r => ({ name: r[0], score: r[1] }))
+        };
+    }
+
+    return { name: ocrName, score: 0, matched: false };
+};
+
+/**
  * Extract all structured data from text
  */
 export const extractAllStructuredData = (text, features = {}) => {
@@ -163,9 +242,43 @@ export const extractAllStructuredData = (text, features = {}) => {
         alternativeNames: medicineNames.slice(1, 5),
         dosage: extractDosage(text),
         expiryDate: extractExpiryDate(text),
+        manufacturingDate: extractManufacturingDate(text),
         batchNumber: extractBatchNumber(text),
         manufacturer: extractManufacturer(text),
     };
+};
+
+/**
+ * Parse date string into Date object
+ * Supports multiple formats
+ */
+const parseDate = (dateStr) => {
+    if (!dateStr) return null;
+
+    const formats = [
+        'dd/MM/yyyy',
+        'dd-MM-yyyy',
+        'dd.MM.yyyy',
+        'MM/yyyy',
+        'MM-yyyy',
+        'MMM-yyyy',
+        'MMM yyyy',
+        'dd/MM/yy',
+        'dd-MM-yy',
+    ];
+
+    for (const formatStr of formats) {
+        try {
+            const parsed = parse(dateStr, formatStr, new Date());
+            if (isValid(parsed)) {
+                return parsed;
+            }
+        } catch (e) {
+            // Try next format
+        }
+    }
+
+    return null;
 };
 
 /**
