@@ -84,112 +84,50 @@ export const recognizeMedicineFromImage = async (imageBase64, useTrustedSources 
 
 export const scanMedicine = async (req, res, next) => {
   try {
-    const { image, useTrustedSources = true, medicineName, language } = req.body;
+    const { image, useTrustedSources = true, medicineName, language, scanType = 'auto' } = req.body;
 
     // Check if we have image data
     if (!image) {
       return next(createError(400, 'Image data is required'));
     }
 
+    let extractedInfo = null;
     let extractedMedicineName = null;
 
     // If medicine name is provided, use it directly
     if (medicineName && medicineName.trim()) {
       extractedMedicineName = medicineName.trim();
+      console.log('Using provided medicine name:', extractedMedicineName);
     } else {
-      // Try to extract medicine name from image using OCR
-      console.log('Extracting medicine name from image using OCR...');
+      // Use new comprehensive OCR system to extract all information
+      console.log('Extracting comprehensive medicine information from image...');
       try {
-        const { extractTextFromImage, extractMedicineNames } = await import('../utils/ocrService.js');
+        const { extractMedicineInformation } = await import('../utils/ocrService.js');
 
-        const fullText = await extractTextFromImage(image);
-        if (!fullText || fullText.trim().length === 0) {
-          return next(createError(400, 'Could not extract text from image. Please enter the medicine name manually or provide a clearer image.'));
+        extractedInfo = await extractMedicineInformation(image, scanType, language || 'en');
+
+        if (!extractedInfo || !extractedInfo.medicineName) {
+          return next(createError(400, 'Could not identify medicine from image. Please enter the medicine name manually or provide a clearer image.'));
         }
 
-        // Get all potential medicine names
-        const allMedicineNames = extractMedicineNames(fullText);
-
-        if (allMedicineNames.length === 0) {
-          // Try to extract capitalized words as fallback
-          const capitalizedWords = fullText.match(/\b([A-Z]{3,}(?:[-]\d+)?)\b/g);
-          if (capitalizedWords && capitalizedWords.length > 0) {
-            extractedMedicineName = capitalizedWords[0];
-            console.log('Using capitalized word as medicine name:', extractedMedicineName);
-          } else {
-            return next(createError(400, `Could not identify medicine name from image. Extracted text: "${fullText.substring(0, 200)}". Please enter the medicine name manually.`));
-          }
-        } else {
-          extractedMedicineName = allMedicineNames[0];
-          console.log('All extracted medicine names:', allMedicineNames);
-          console.log('Selected medicine name:', extractedMedicineName);
-        }
-
-        // Try multiple medicine names if we have multiple candidates
-        if (allMedicineNames.length > 0) {
-          let result = null;
-
-          // Try each medicine name until one succeeds
-          for (let i = 0; i < Math.min(allMedicineNames.length, 5); i++) {
-            const candidateName = allMedicineNames[i];
-            console.log(`Trying medicine name ${i + 1}/${allMedicineNames.length}: "${candidateName}"`);
-
-            result = await recognizeMedicineFromImage(image, useTrustedSources, candidateName);
-
-            if (result.success) {
-              extractedMedicineName = candidateName;
-              console.log(`Success with medicine name: ${extractedMedicineName}`);
-
-              // If language is specified and not English, translate the medicine data
-              let medicineData = result.medicine;
-              if (language && language !== 'en') {
-                try {
-                  const { fetchMedicineTranslation } = await import('../utils/medlinePlusService.js');
-                  const translatedData = await fetchMedicineTranslation(result.medicine.name, language);
-
-                  if (translatedData) {
-                    // Merge translated data with the real medicine object
-                    medicineData = {
-                      ...result.medicine.toObject(),
-                      ...translatedData,
-                      _id: result.medicine._id, // Preserve the real MongoDB ID
-                      usage: Array.isArray(translatedData.usage) ? translatedData.usage : [translatedData.usage],
-                      indications: Array.isArray(translatedData.usage) ? translatedData.usage : [translatedData.usage],
-                    };
-                  }
-                } catch (translationError) {
-                  console.error('Translation error:', translationError);
-                  // Continue with English data if translation fails
-                }
-              }
-
-              return res.json({
-                status: 'success',
-                data: {
-                  medicine: medicineData,
-                  source: result.source,
-                  confidence: result.confidence,
-                  extractedName: extractedMedicineName
-                }
-              });
-            } else {
-              console.log(`Medicine name "${candidateName}" failed: ${result.error}`);
-            }
-          }
-
-          // If all attempts failed, return error with all tried names
-          const triedNames = allMedicineNames.slice(0, 5).join(', ');
-          return next(createError(404, `Could not find medicine information for any of the extracted names: ${triedNames}. Please try entering the medicine name manually.`));
-        }
+        extractedMedicineName = extractedInfo.medicineName;
+        console.log('Extracted medicine information:', {
+          name: extractedInfo.medicineName,
+          scanType: extractedInfo.scanType,
+          engine: extractedInfo.ocrEngine,
+          aiValidated: extractedInfo.aiValidated,
+        });
       } catch (ocrError) {
         console.error('OCR Error:', ocrError);
 
-        // Provide more helpful error messages
+        // Provide helpful error messages
         let errorMessage = ocrError.message;
-        if (errorMessage.includes('timeout') || errorMessage.includes('E101') || errorMessage.includes('Timed out')) {
-          errorMessage = 'OCR processing timed out. This may happen with large or complex images. Please try again with a smaller, clearer image or enter the medicine name manually.';
+        if (errorMessage.includes('timeout')) {
+          errorMessage = 'OCR processing timed out. Please try again with a smaller, clearer image or enter the medicine name manually.';
         } else if (errorMessage.includes('rate limit') || errorMessage.includes('quota')) {
-          errorMessage = 'OCR service is temporarily unavailable due to high usage. Please try again in a few moments or enter the medicine name manually.';
+          errorMessage = 'OCR service is temporarily unavailable. Please try again in a few moments or enter the medicine name manually.';
+        } else if (errorMessage.includes('No OCR engines available')) {
+          errorMessage = 'OCR service is not configured. Please contact support or enter the medicine name manually.';
         } else {
           errorMessage = `Failed to process image: ${errorMessage}. Please enter the medicine name manually or try again with a clearer image.`;
         }
@@ -228,14 +166,32 @@ export const scanMedicine = async (req, res, next) => {
       }
     }
 
+    // Prepare response with comprehensive data
+    const responseData = {
+      medicine: medicineData,
+      source: result.source,
+      confidence: result.confidence,
+      extractedName: extractedMedicineName,
+    };
+
+    // Include structured data from OCR if available
+    if (extractedInfo) {
+      responseData.structuredData = {
+        scanType: extractedInfo.scanType,
+        dosage: extractedInfo.dosage,
+        expiryDate: extractedInfo.expiryDate,
+        batchNumber: extractedInfo.batchNumber,
+        manufacturer: extractedInfo.manufacturer,
+        ocrEngine: extractedInfo.ocrEngine,
+        ocrConfidence: extractedInfo.ocrConfidence,
+        aiValidated: extractedInfo.aiValidated,
+        aiConfidence: extractedInfo.aiConfidence,
+      };
+    }
+
     res.json({
       status: 'success',
-      data: {
-        medicine: medicineData,
-        source: result.source,
-        confidence: result.confidence,
-        extractedName: extractedMedicineName // Include extracted name for debugging
-      }
+      data: responseData
     });
   } catch (error) {
     console.error('Scan medicine error:', error);
