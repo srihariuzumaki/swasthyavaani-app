@@ -45,19 +45,24 @@ export const extractTextWithVision = async (imageBase64, scanType = 'label') => 
             throw new Error('Google Vision API client not available');
         }
 
-        // Prepare image for Vision API
-        const image = {
-            content: imageBase64,
+        // Prepare image for Vision API - ensure it's properly formatted
+        // Remove any data URL prefix if present
+        const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+
+        const request = {
+            image: {
+                content: Buffer.from(cleanBase64, 'base64'),
+            },
         };
 
         // Choose detection method based on scan type
         let response;
         if (scanType === 'handwritten') {
             // Use document text detection for handwritten text
-            [response] = await visionClient.documentTextDetection(image);
+            [response] = await visionClient.documentTextDetection(request);
         } else {
             // Use text detection for printed text (labels, prescriptions)
-            [response] = await visionClient.textDetection(image);
+            [response] = await visionClient.textDetection(request);
         }
 
         const detections = response.textAnnotations;
@@ -120,10 +125,17 @@ export const detectDocumentFeatures = async (imageBase64) => {
             throw new Error('Google Vision API client not available');
         }
 
-        const image = { content: imageBase64 };
+        // Clean and prepare image
+        const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+
+        const request = {
+            image: {
+                content: Buffer.from(cleanBase64, 'base64'),
+            },
+        };
 
         // Use document text detection to get detailed analysis
-        const [result] = await visionClient.documentTextDetection(image);
+        const [result] = await visionClient.documentTextDetection(request);
         const fullTextAnnotation = result.fullTextAnnotation;
 
         if (!fullTextAnnotation) {
