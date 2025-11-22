@@ -15,9 +15,10 @@ const initializeVisionClient = () => {
     }
 
     try {
-        // Initialize with API key
+        // Initialize with API key directly (not keyFilename)
+        // For API key authentication, we need to use a different approach
         visionClient = new vision.ImageAnnotatorClient({
-            keyFilename: GOOGLE_VISION_API_KEY, // Can also use API key directly
+            apiKey: GOOGLE_VISION_API_KEY,
         });
         console.log('Google Vision API client initialized successfully');
         return visionClient;
