@@ -1,7 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const ENABLE_AI_VALIDATION = process.env.ENABLE_AI_VALIDATION === 'true';
+// Access environment variables at runtime for Vercel serverless
+const getGeminiApiKey = () => process.env.GEMINI_API_KEY;
+const isAiValidationEnabled = () => process.env.ENABLE_AI_VALIDATION === 'true';
 
 let genAI = null;
 let model = null;
@@ -10,6 +11,8 @@ let model = null;
  * Initialize Gemini AI
  */
 const initializeGemini = () => {
+    const GEMINI_API_KEY = getGeminiApiKey();
+
     if (!GEMINI_API_KEY) {
         console.warn('Gemini API key not found. AI validation will be disabled.');
         return false;
@@ -34,6 +37,8 @@ const initializeGemini = () => {
  */
 export const extractTextFromImageWithGemini = async (imageBase64, scanType = 'label') => {
     try {
+        const GEMINI_API_KEY = getGeminiApiKey();
+
         if (!GEMINI_API_KEY) {
             throw new Error('Gemini API key not available');
         }
@@ -320,5 +325,7 @@ Respond in JSON format:
  * @returns {boolean}
  */
 export const isGeminiAvailable = () => {
-    return ENABLE_AI_VALIDATION && !!GEMINI_API_KEY;
+    const GEMINI_API_KEY = getGeminiApiKey();
+    const ENABLE_AI_VALIDATION = isAiValidationEnabled();
+    return !!GEMINI_API_KEY; // Always return true if API key exists, regardless of validation flag
 };
