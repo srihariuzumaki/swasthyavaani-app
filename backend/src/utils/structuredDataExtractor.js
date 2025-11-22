@@ -4,7 +4,7 @@
  * Enhanced with fuzzy matching and validation
  */
 
-import fuzz from 'fuzzball';
+import * as fuzz from 'fuzzball';
 import { parse, isValid, isFuture, isPast, format } from 'date-fns';
 
 /**
