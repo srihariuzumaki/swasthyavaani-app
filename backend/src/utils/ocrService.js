@@ -1,10 +1,9 @@
 /**
  * Advanced OCR Service
- * Orchestrates multiple OCR engines and AI validation for accurate medicine information extraction
- * Replaces the old OCR.space implementation with Google Vision API + EasyOCR + Gemini AI
+ * Open-source OCR pipeline using EasyOCR + image preprocessing
+ * No billing required - completely free!
  */
 
-// Google Vision API removed - using FREE Gemini Vision instead
 import { extractTextWithEasyOCR, isEasyOCRAvailable } from './easyOcrService.js';
 import { validateOcrText, extractStructuredData as geminiExtractStructuredData, detectScanType as geminiDetectScanType, isGeminiAvailable } from './geminiAiService.js';
 import { extractAllStructuredData, autoDetectScanType } from './structuredDataExtractor.js';
@@ -58,29 +57,28 @@ export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRe
     }
   }
 
-  // Try Gemini Vision first (FREE - No billing required!)
-  if (process.env.GEMINI_API_KEY) {
+  // Use EasyOCR as primary OCR engine (FREE & open-source!)
+  if (await isEasyOCRAvailable()) {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         if (attempt > 0) {
           const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-          console.log(`Retrying Gemini Vision (attempt ${attempt + 1}/${maxRetries + 1}) after ${delay}ms...`);
+          console.log(`Retrying EasyOCR (attempt ${attempt + 1}/${maxRetries + 1}) after ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
 
-        console.log(`Attempting Gemini Vision OCR (attempt ${attempt + 1}/${maxRetries + 1})...`);
+        console.log(`Attempting EasyOCR (attempt ${attempt + 1}/${maxRetries + 1})...`);
 
-        const { extractTextFromImageWithGemini } = await import('./geminiAiService.js');
-        const result = await extractTextFromImageWithGemini(optimizedImage, scanType);
+        const result = await extractTextWithEasyOCR(optimizedImage, ['en']);
 
         if (result.text && result.text.trim().length > 0) {
-          console.log(`Gemini Vision extracted ${result.text.length} characters`);
+          console.log(`EasyOCR extracted ${result.text.length} characters with ${result.confidence.toFixed(2)} confidence`);
           return {
             text: result.text,
             confidence: result.confidence,
-            engine: 'gemini-vision',
+            engine: 'easyocr',
             features: {},
-            blocks: result.blocks,
+            blocks: result.blocks || [],
           };
         }
 
@@ -89,7 +87,7 @@ export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRe
           continue;
         }
       } catch (error) {
-        console.error(`Gemini Vision error (attempt ${attempt + 1}):`, error.message);
+        console.error(`EasyOCR error (attempt ${attempt + 1}):`, error.message);
         lastError = error;
 
         if (attempt < maxRetries) {
@@ -98,37 +96,14 @@ export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRe
       }
     }
   } else {
-    console.log('Gemini API key not available, skipping to fallback');
-  }
-
-  // Fallback to EasyOCR
-  if (await isEasyOCRAvailable()) {
-    try {
-      console.log('Attempting EasyOCR fallback...');
-      const result = await extractTextWithEasyOCR(optimizedImage, ['en']);
-
-      if (result.text && result.text.trim().length > 0) {
-        console.log(`EasyOCR extracted ${result.text.length} characters with ${result.confidence.toFixed(2)} confidence`);
-        return {
-          text: result.text,
-          confidence: result.confidence,
-          engine: 'easyocr',
-          features: {},
-        };
-      }
-    } catch (error) {
-      console.error('EasyOCR error:', error.message);
-      lastError = error;
-    }
-  } else {
     console.log('EasyOCR not available');
   }
 
-  // If all engines failed
+  // If OCR failed
   throw new Error(
     lastError
-      ? `All OCR engines failed. Last error: ${lastError.message}`
-      : 'No OCR engines available. Please configure Gemini API key.'
+      ? `OCR failed: ${lastError.message}`
+      : 'EasyOCR is not available. Please ensure Python and EasyOCR are installed.'
   );
 };
 
