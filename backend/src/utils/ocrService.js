@@ -4,7 +4,7 @@
  * Replaces the old OCR.space implementation with Google Vision API + EasyOCR + Gemini AI
  */
 
-import { extractTextWithVision, detectDocumentFeatures, isVisionApiAvailable } from './googleVisionService.js';
+// Google Vision API removed - using FREE Gemini Vision instead
 import { extractTextWithEasyOCR, isEasyOCRAvailable } from './easyOcrService.js';
 import { validateOcrText, extractStructuredData as geminiExtractStructuredData, detectScanType as geminiDetectScanType, isGeminiAvailable } from './geminiAiService.js';
 import { extractAllStructuredData, autoDetectScanType } from './structuredDataExtractor.js';
@@ -13,7 +13,7 @@ const OCR_CONFIDENCE_THRESHOLD = parseFloat(process.env.OCR_CONFIDENCE_THRESHOLD
 
 /**
  * Extract text from image using dual-engine strategy
- * Primary: Google Vision API
+ * Primary: Gemini Vision (FREE!)
  * Fallback: EasyOCR
  * 
  * @param {string} imageBase64 - Base64 encoded image data (without data URL prefix)
@@ -58,35 +58,28 @@ export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRe
     }
   }
 
-  // Try Google Vision API first
-  if (isVisionApiAvailable()) {
+  // Try Gemini Vision first (FREE - No billing required!)
+  if (process.env.GEMINI_API_KEY) {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         if (attempt > 0) {
           const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-          console.log(`Retrying Vision API (attempt ${attempt + 1}/${maxRetries + 1}) after ${delay}ms...`);
+          console.log(`Retrying Gemini Vision (attempt ${attempt + 1}/${maxRetries + 1}) after ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
 
-        console.log(`Attempting Vision API OCR (attempt ${attempt + 1}/${maxRetries + 1})...`);
+        console.log(`Attempting Gemini Vision OCR (attempt ${attempt + 1}/${maxRetries + 1})...`);
 
-        // Detect document features for auto-detection
-        let features = {};
-        if (scanType === 'auto') {
-          features = await detectDocumentFeatures(optimizedImage);
-          scanType = features.layout || 'label';
-          console.log(`Auto-detected scan type: ${scanType}`);
-        }
-
-        const result = await extractTextWithVision(optimizedImage, scanType);
+        const { extractTextFromImageWithGemini } = await import('./geminiAiService.js');
+        const result = await extractTextFromImageWithGemini(optimizedImage, scanType);
 
         if (result.text && result.text.trim().length > 0) {
-          console.log(`Vision API extracted ${result.text.length} characters with ${result.confidence.toFixed(2)} confidence`);
+          console.log(`Gemini Vision extracted ${result.text.length} characters`);
           return {
             text: result.text,
             confidence: result.confidence,
-            engine: 'google-vision',
-            features,
+            engine: 'gemini-vision',
+            features: {},
             blocks: result.blocks,
           };
         }
@@ -96,7 +89,7 @@ export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRe
           continue;
         }
       } catch (error) {
-        console.error(`Vision API error (attempt ${attempt + 1}):`, error.message);
+        console.error(`Gemini Vision error (attempt ${attempt + 1}):`, error.message);
         lastError = error;
 
         if (attempt < maxRetries) {
@@ -105,7 +98,7 @@ export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRe
       }
     }
   } else {
-    console.log('Google Vision API not available, skipping to fallback');
+    console.log('Gemini API key not available, skipping to fallback');
   }
 
   // Fallback to EasyOCR
@@ -135,7 +128,7 @@ export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRe
   throw new Error(
     lastError
       ? `All OCR engines failed. Last error: ${lastError.message}`
-      : 'No OCR engines available. Please configure Google Vision API or EasyOCR.'
+      : 'No OCR engines available. Please configure Gemini API key.'
   );
 };
 
