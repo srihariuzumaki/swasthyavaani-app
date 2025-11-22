@@ -54,16 +54,12 @@ const medicineSchema = new mongoose.Schema({
     }],
     dosage: {
         adult: {
-            min: String,
-            max: String,
-            unit: String,
-            frequency: String,
+            type: mongoose.Schema.Types.Mixed, // Accept both string and object
+            default: null
         },
         pediatric: {
-            min: String,
-            max: String,
-            unit: String,
-            frequency: String,
+            type: mongoose.Schema.Types.Mixed, // Accept both string and object
+            default: null
         },
     },
     sideEffects: [{

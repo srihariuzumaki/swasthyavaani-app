@@ -8,6 +8,22 @@ import * as fuzz from 'fuzzball';
 import { parse, isValid, isFuture, isPast, format } from 'date-fns';
 
 /**
+ * Check if text is a manufacturer name
+ */
+const isManufacturerName = (text) => {
+    const manufacturerKeywords = [
+        'pharma', 'ltd', 'limited', 'laboratories', 'lab', 'pvt',
+        'inc', 'corporation', 'corp', 'company', 'co',
+        'healthcare', 'biotech', 'life sciences', 'therapeutics',
+        'mankind', 'cipla', 'sun', 'lupin', 'dr reddy', 'torrent',
+        'alkem', 'glenmark', 'abbott', 'pfizer', 'novartis'
+    ];
+
+    const lowerText = text.toLowerCase();
+    return manufacturerKeywords.some(keyword => lowerText.includes(keyword));
+};
+
+/**
  * Extract medicine names using pattern matching
  */
 export const extractMedicineNames = (text) => {
@@ -18,21 +34,31 @@ export const extractMedicineNames = (text) => {
     const medicineNames = [];
     const lines = text.split('\n');
 
-    // Common medicine name patterns
+    // Enhanced medicine name patterns
     const patterns = [
-        // Brand names with numbers (e.g., "DOLO 650", "CROCIN 500")
-        /\b([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+)*\s+\d+(?:mg|ML|MG)?)\b/g,
-        // All caps words (likely brand names)
-        /\b([A-Z]{3,}(?:\s+[A-Z]{3,})*)\b/g,
+        // Brand names with numbers and units (e.g., "GLIMESTAR M1", "DOLO 650")
+        /\b([A-Z][A-Za-z]+(?:\s+[A-Z]\d+|\s+\d+)?(?:\s+\d+(?:mg|ML|MG)?)?)\b/g,
+        // All caps words (likely brand names) - but not too long
+        /\b([A-Z]{3,15}(?:\s+[A-Z]\d+)?)\b/g,
         // Capitalized words followed by dosage
-        /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:\d+\s*(?:mg|ml|g|mcg))/gi,
+        /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)(?:\s+\d+\s*(?:mg|ml|g|mcg))/gi,
     ];
 
     for (const line of lines) {
+        // Skip lines that clearly contain manufacturer info
+        if (isManufacturerName(line)) {
+            continue;
+        }
+
         for (const pattern of patterns) {
             const matches = line.match(pattern);
             if (matches) {
-                medicineNames.push(...matches);
+                for (const match of matches) {
+                    // Filter out manufacturer names
+                    if (!isManufacturerName(match)) {
+                        medicineNames.push(match.trim());
+                    }
+                }
             }
         }
     }
@@ -40,9 +66,44 @@ export const extractMedicineNames = (text) => {
     // Remove duplicates and filter
     const uniqueNames = [...new Set(medicineNames)]
         .filter(name => name.length > 2)
-        .filter(name => !isCommonWord(name));
+        .filter(name => !isCommonWord(name))
+        .filter(name => !isManufacturerName(name));
 
-    return uniqueNames;
+    // Score and sort by likelihood of being a medicine name
+    const scored = uniqueNames.map(name => ({
+        name,
+        score: scoreMedicineName(name, text)
+    }));
+
+    scored.sort((a, b) => b.score - a.score);
+
+    return scored.map(item => item.name);
+};
+
+/**
+ * Score how likely a name is to be a medicine name
+ */
+const scoreMedicineName = (name, fullText) => {
+    let score = 0;
+
+    // Prefer names that appear early in text
+    const position = fullText.indexOf(name);
+    if (position < fullText.length / 3) score += 3;
+
+    // Prefer shorter names (brand names are usually concise)
+    if (name.length < 20) score += 2;
+    if (name.length < 15) score += 1;
+
+    // Prefer names with numbers (like M1, 650)
+    if (/\d/.test(name)) score += 2;
+
+    // Prefer all caps or title case
+    if (name === name.toUpperCase()) score += 2;
+
+    // Penalize if contains manufacturer keywords
+    if (isManufacturerName(name)) score -= 10;
+
+    return score;
 };
 
 /**

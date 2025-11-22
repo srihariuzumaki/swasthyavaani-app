@@ -54,17 +54,33 @@ export const extractTextFromImageWithGemini = async (imageBase64, scanType = 'la
         const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
 
         const prompt = `You are an expert OCR system specialized in reading medicine labels and prescriptions.
-Extract ALL text from this image accurately. Pay special attention to:
-- Medicine names (brand and generic)
-- Dosage information (mg, ml, etc.)
-- Expiry dates (look for "EXP", "Expiry", "Use before")
-- Manufacturing dates (look for "MFG", "Mfd")
-- Batch numbers (look for "Batch", "Lot", "B.No")
-- Manufacturer names
 
-Return ONLY the extracted text exactly as it appears, maintaining the original layout and line breaks.
-Be very accurate with numbers, dates, and medicine names.
-Do not add any explanations or formatting - just the raw text.`;
+Extract ALL text from this medicine label image. Focus on identifying:
+
+**MEDICINE NAME (Brand Name):**
+- Usually the LARGEST text on the label
+- Often at the top or center
+- Examples: GLIMESTAR M1, DOLO 650, AUGMENTIN, CROCIN
+- NOT the manufacturer name (like "Mankind Pharma", "Cipla", "Sun Pharma")
+
+**GENERIC NAME (Composition):**
+- Scientific/chemical name
+- Usually smaller text below brand name
+- Examples: "Metformin Hydrochloride", "Paracetamol", "Amoxicillin"
+
+**MANUFACTURER:**
+- Company name (like "MANKIND PHARMA LTD", "Cipla Ltd")
+- Usually at bottom or in small print
+- Often includes "Ltd", "Pharma", "Laboratories"
+
+**OTHER DETAILS:**
+- Dosage: mg, ml, tablets
+- Expiry date (EXP, Expiry)
+- Manufacturing date (MFG, Mfd)
+- Batch number (Batch, Lot, B.No)
+
+Return the extracted text EXACTLY as it appears, maintaining layout and line breaks.
+Be very accurate with medicine names vs manufacturer names.`;
 
         const imagePart = {
             inlineData: {
