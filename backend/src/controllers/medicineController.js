@@ -91,6 +91,13 @@ export const scanMedicine = async (req, res, next) => {
       return next(createError(400, 'Image data is required'));
     }
 
+    // Log image data for debugging
+    console.log('Received image data:', {
+      length: image?.length || 0,
+      firstChars: image?.substring(0, 50) || 'empty',
+      type: typeof image
+    });
+
     let extractedInfo = null;
     let extractedMedicineName = null;
 

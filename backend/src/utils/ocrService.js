@@ -24,6 +24,11 @@ const OCR_CONFIDENCE_THRESHOLD = parseFloat(process.env.OCR_CONFIDENCE_THRESHOLD
 export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRetries = 2) => {
   let lastError = null;
 
+  // Validate image data
+  if (!imageBase64 || imageBase64.trim().length === 0) {
+    throw new Error('Image data is empty or invalid');
+  }
+
   // Compress image if too large
   let optimizedImage = imageBase64;
   const MAX_SIZE_KB = 900;
