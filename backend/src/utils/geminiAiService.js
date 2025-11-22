@@ -27,6 +27,74 @@ const initializeGemini = () => {
 };
 
 /**
+ * Extract text from image using Gemini Vision (FREE!)
+ * @param {string} imageBase64 - Base64 encoded image
+ * @param {string} scanType - Type of scan (label, handwritten, printed)
+ * @returns {Promise<{text: string, confidence: number, blocks: Array}>}
+ */
+export const extractTextFromImageWithGemini = async (imageBase64, scanType = 'label') => {
+    try {
+        if (!GEMINI_API_KEY) {
+            throw new Error('Gemini API key not available');
+        }
+
+        if (!genAI) {
+            genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        }
+
+        // Use gemini-1.5-flash for vision (supports image input)
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+        // Clean base64 string
+        const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+
+        const prompt = `You are an expert OCR system specialized in reading medicine labels and prescriptions.
+Extract ALL text from this image accurately. Pay special attention to:
+- Medicine names (brand and generic)
+- Dosage information (mg, ml, etc.)
+- Expiry dates (look for "EXP", "Expiry", "Use before")
+- Manufacturing dates (look for "MFG", "Mfd")
+- Batch numbers (look for "Batch", "Lot", "B.No")
+- Manufacturer names
+
+Return ONLY the extracted text exactly as it appears, maintaining the original layout and line breaks.
+Be very accurate with numbers, dates, and medicine names.
+Do not add any explanations or formatting - just the raw text.`;
+
+        const imagePart = {
+            inlineData: {
+                data: cleanBase64,
+                mimeType: 'image/jpeg',
+            },
+        };
+
+        const result = await model.generateContent([prompt, imagePart]);
+        const response = await result.response;
+        const text = response.text();
+
+        if (!text || text.trim().length === 0) {
+            return {
+                text: '',
+                confidence: 0,
+                blocks: [],
+            };
+        }
+
+        console.log(`Gemini Vision extracted ${text.length} characters from ${scanType}`);
+
+        return {
+            text: text.trim(),
+            confidence: 0.85, // Gemini is quite accurate
+            blocks: [],
+            engine: 'gemini-vision',
+        };
+    } catch (error) {
+        console.error('Gemini Vision OCR error:', error);
+        throw new Error(`Gemini Vision failed: ${error.message}`);
+    }
+};
+
+/**
  * Validate and enhance OCR-extracted text using Gemini AI
  * @param {string} rawText - Raw text from OCR
  * @param {string} scanType - Type of scan (label, handwritten, printed)

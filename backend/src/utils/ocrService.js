@@ -1,11 +1,10 @@
 /**
  * Advanced OCR Service
- * Calls Python OCR microservice (Railway) for text extraction
- * No local Python dependencies needed!
+ * Uses Gemini Vision API for text extraction (FREE!)
+ * No Python dependencies, no microservice needed!
  */
 
-import { callOcrService, isOcrServiceAvailable } from './ocrClient.js';
-import { validateOcrText, extractStructuredData as geminiExtractStructuredData, detectScanType as geminiDetectScanType, isGeminiAvailable } from './geminiAiService.js';
+import { extractTextFromImageWithGemini, validateOcrText, extractStructuredData as geminiExtractStructuredData, detectScanType as geminiDetectScanType, isGeminiAvailable } from './geminiAiService.js';
 import { extractAllStructuredData, autoDetectScanType, fuzzyMatchMedicineName } from './structuredDataExtractor.js';
 import { calculateOverallConfidence, getConfidenceLevel } from './confidenceScorer.js';
 
@@ -58,31 +57,26 @@ export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRe
     }
   }
 
-  // Image preprocessing is now handled by the OCR microservice
-  // No need for local preprocessing
-
-  // Call OCR microservice (Railway)
-  if (await isOcrServiceAvailable()) {
+  // Use Gemini Vision API for OCR (FREE!)
+  if (isGeminiAvailable()) {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         if (attempt > 0) {
           const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-          console.log(`Retrying OCR microservice (attempt ${attempt + 1}/${maxRetries + 1}) after ${delay}ms...`);
+          console.log(`Retrying Gemini Vision (attempt ${attempt + 1}/${maxRetries + 1}) after ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
 
-        console.log(`Calling OCR microservice (attempt ${attempt + 1}/${maxRetries + 1})...`);
+        console.log(`Calling Gemini Vision API (attempt ${attempt + 1}/${maxRetries + 1})...`);
 
-        // Use multiple languages for better accuracy on Indian medicine labels
-        const languages = ['en', 'hi']; // English + Hindi
-        const result = await callOcrService(optimizedImage, languages, true, scanType);
+        const result = await extractTextFromImageWithGemini(optimizedImage, scanType);
 
         if (result.text && result.text.trim().length > 0) {
-          console.log(`OCR microservice extracted ${result.text.length} characters with ${result.confidence.toFixed(2)} confidence`);
+          console.log(`Gemini Vision extracted ${result.text.length} characters with ${result.confidence.toFixed(2)} confidence`);
           return {
             text: result.text,
             confidence: result.confidence,
-            engine: 'easyocr-microservice',
+            engine: 'gemini-vision',
             features: {},
             blocks: result.blocks || [],
           };
@@ -93,7 +87,7 @@ export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRe
           continue;
         }
       } catch (error) {
-        console.error(`OCR microservice error (attempt ${attempt + 1}):`, error.message);
+        console.error(`Gemini Vision error (attempt ${attempt + 1}):`, error.message);
         lastError = error;
 
         if (attempt < maxRetries) {
@@ -102,15 +96,15 @@ export const extractTextFromImage = async (imageBase64, scanType = 'auto', maxRe
       }
     }
   } else {
-    console.log('OCR microservice not available');
-    lastError = new Error('OCR microservice is not available. Please check OCR_SERVICE_URL environment variable.');
+    console.log('Gemini API not available');
+    lastError = new Error('Gemini API key not configured. Please set GEMINI_API_KEY environment variable.');
   }
 
   // If OCR failed
   throw new Error(
     lastError
       ? `OCR failed: ${lastError.message}`
-      : 'OCR microservice is not available. Please check OCR_SERVICE_URL environment variable.'
+      : 'Gemini API is not available. Please set GEMINI_API_KEY environment variable.'
   );
 };
 
