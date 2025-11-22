@@ -8,53 +8,62 @@ console.log('API Base URL:', API_BASE_URL);
 
 // API response types
 export interface ApiResponse<T> {
-  status: 'success' | 'error';
-  message?: string;
-  data?: T;
+    status: 'success' | 'error';
+    message?: string;
+    data?: T;
 }
 
 export interface MedicineData {
-  _id: string;
-  name: string;
-  genericName?: string;
-  category: string;
-  description?: string;
-  indications?: string[];
-  dosage?: {
-    adult?: {
-      min?: string;
-      max?: string;
-      unit?: string;
-      frequency?: string;
+    _id: string;
+    name: string;
+    genericName?: string;
+    category: string;
+    description?: string;
+    indications?: string[];
+    dosage?: {
+        adult?: {
+            min?: string;
+            max?: string;
+            unit?: string;
+            frequency?: string;
+        };
+        pediatric?: {
+            min?: string;
+            max?: string;
+            unit?: string;
+            frequency?: string;
+        };
     };
-    pediatric?: {
-      min?: string;
-      max?: string;
-      unit?: string;
-      frequency?: string;
-    };
-  };
-  sideEffects?: string[];
-  contraindications?: string[];
-  warnings?: string[];
-  isPrescriptionRequired?: boolean;
+    sideEffects?: string[];
+    contraindications?: string[];
+    warnings?: string[];
+    isPrescriptionRequired?: boolean;
 }
 
 export interface MedicineSearchResponse {
-  medicines: MedicineData[];
-  pagination: {
-    currentPage: number;
-    totalPages: number;
-    totalMedicines: number;
-    hasNext: boolean;
-    hasPrev: boolean;
-  };
+    medicines: MedicineData[];
+    pagination: {
+        currentPage: number;
+        totalPages: number;
+        totalMedicines: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+    };
 }
 
 export interface MedicineScanResponse {
-  medicine: MedicineData;
-  source?: string;
-  confidence?: number;
+    medicine: MedicineData;
+    source?: string;
+    confidence?: number;
+    structuredData?: {
+        dosage?: string;
+        expiryDate?: string;
+        batchNumber?: string;
+        manufacturer?: string;
+        scanType?: string;
+        extractedText?: string;
+        [key: string]: any; // Allow additional OCR-extracted fields
+    };
 }
 
 class ApiClient {

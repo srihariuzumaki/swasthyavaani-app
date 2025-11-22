@@ -45,7 +45,9 @@ const MedicineScanner = () => {
   const [medicineId, setMedicineId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [medicineName, setMedicineName] = useState<string>("");
+  const [structuredData, setStructuredData] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
 
   const takePicture = async () => {
     try {
@@ -112,20 +114,27 @@ const MedicineScanner = () => {
       console.log('Processing medicine image...', { hasImage: !!base64Data, hasName: !!name });
       
       // Call API to process the image and get medicine info from trusted sources
-      const response = await apiClient.post<MedicineScanResponse>('/medicines/scan', {
+    const response = await apiClient.post<MedicineScanResponse>('/medicines/scan', {
   image: base64Data,
   useTrustedSources: true,
   medicineName: name || medicineName || undefined,
-  language: i18n.language // Add this line
+  language: i18n.language,
+  scanType: 'auto'
 });
       
       console.log('Medicine scan response:', response);
       
-      if (response.status === 'success' && response.data?.medicine) {
-        setMedicineInfo(response.data.medicine);
-        setMedicineId(response.data.medicine._id || null);
-        setMedicineName(""); // Clear medicine name input after successful scan
-        setError(null); // Clear any previous errors
+     if (response.status === 'success' && response.data?.medicine) {
+  setMedicineInfo(response.data.medicine);
+  setMedicineId(response.data.medicine._id || null);
+  setMedicineName(""); // Clear medicine name input after successful scan
+  setError(null); // Clear any previous errors
+  
+  // Store structured data from OCR if available
+  if (response.data.structuredData) {
+    setStructuredData(response.data.structuredData);
+    console.log('Structured data extracted:', response.data.structuredData);
+  }
         
         // Store search in user history
         try {
@@ -139,11 +148,12 @@ const MedicineScanner = () => {
           console.error('Failed to save search history:', historyError);
         }
       } else {
-        const errorMsg = (response as any).message || (response as any).data?.message || "Could not identify medicine. Please try entering the medicine name manually below or try again with a clearer image.";
-        setError(errorMsg);
-        setMedicineInfo(null); // Clear medicine info
-        console.error('Scan failed:', response);
-      }
+  const errorMsg = (response as any).message || (response as any).data?.message || "Could not identify medicine...";
+  setError(errorMsg);
+  setMedicineInfo(null); // Clear medicine info
+  setStructuredData(null); // Clear structured data
+  console.error('Scan failed:', response);
+}
     } catch (error: any) {
       console.error("Error processing medicine image:", error);
       const errorMessage = error?.response?.data?.message || error?.message || "An error occurred while processing the image. Please try again.";
@@ -154,16 +164,17 @@ const MedicineScanner = () => {
     }
   };
 
-  const resetScanner = () => {
-    setImageUrl(null);
-    setMedicineInfo(null);
-    setMedicineId(null);
-    setError(null);
-    setMedicineName("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
+ const resetScanner = () => {
+  setImageUrl(null);
+  setMedicineInfo(null);
+  setMedicineId(null);
+  setError(null);
+  setMedicineName("");
+  setStructuredData(null);
+  if (fileInputRef.current) {
+    fileInputRef.current.value = '';
+  }
+};
 
   const handleViewFullDetails = () => {
     if (medicineId) {
