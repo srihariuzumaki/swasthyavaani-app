@@ -47,8 +47,8 @@ export const extractTextFromImageWithGemini = async (imageBase64, scanType = 'la
             genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
         }
 
-        // Use gemini-pro-vision for image analysis (correct model for vision)
-        const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
+        // Use gemini-1.5-flash-latest for vision (from official docs)
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
 
         // Clean base64 string
         const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
