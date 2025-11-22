@@ -6,8 +6,9 @@
 
 import { extractTextWithEasyOCR, isEasyOCRAvailable } from './easyOcrService.js';
 import { validateOcrText, extractStructuredData as geminiExtractStructuredData, detectScanType as geminiDetectScanType, isGeminiAvailable } from './geminiAiService.js';
-import { extractAllStructuredData, autoDetectScanType } from './structuredDataExtractor.js';
+import { extractAllStructuredData, autoDetectScanType, fuzzyMatchMedicineName } from './structuredDataExtractor.js';
 import { preprocessMedicineLabel } from './imagePreprocessor.js';
+import { calculateOverallConfidence, getConfidenceLevel } from './confidenceScorer.js';
 
 const OCR_CONFIDENCE_THRESHOLD = parseFloat(process.env.OCR_CONFIDENCE_THRESHOLD) || 0.7;
 
@@ -261,6 +262,7 @@ export const extractMedicineInformation = async (imageBase64, scanType = 'auto',
 
       // Additional structured data
       expiryDate: aiStructuredData?.expiryDate || patternData?.expiryDate,
+      manufacturingDate: patternData?.manufacturingDate,
       batchNumber: aiStructuredData?.batchNumber || patternData?.batchNumber,
       manufacturer: aiStructuredData?.manufacturer || patternData?.manufacturer,
 
@@ -277,14 +279,29 @@ export const extractMedicineInformation = async (imageBase64, scanType = 'auto',
       alternativeNames: patternData?.alternativeNames || [],
     };
 
+    // Step 7: Calculate confidence scores
+    const confidenceScores = calculateOverallConfidence(
+      ocrResult,
+      mergedData,
+      null // Fuzzy match will be added when we have medicine database
+    );
+
     console.log('Medicine information extraction completed:', {
       medicineName: mergedData.medicineName,
       scanType: mergedData.scanType,
       engine: mergedData.ocrEngine,
       aiValidated: mergedData.aiValidated,
+      confidence: confidenceScores.overall,
+      confidenceLevel: confidenceScores.level
     });
 
-    return mergedData;
+    return {
+      ...mergedData,
+      confidence: confidenceScores.overall,
+      confidenceLevel: confidenceScores.level,
+      confidenceBreakdown: confidenceScores.breakdown,
+      requiresConfirmation: confidenceScores.requiresConfirmation
+    };
   } catch (error) {
     console.error('Error extracting medicine information:', error);
     throw error;
