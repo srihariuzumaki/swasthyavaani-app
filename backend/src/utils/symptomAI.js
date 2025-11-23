@@ -1,21 +1,10 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// Direct API call to avoid SDK issues
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
 
-// Initialize Gemini AI
-let genAI = null;
-
-const getGeminiAI = () => {
-    if (!genAI) {
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            throw new Error('GEMINI_API_KEY is not configured');
-        }
-        genAI = new GoogleGenerativeAI(apiKey);
-    }
-    return genAI;
-};
+const getGeminiApiKey = () => process.env.GEMINI_API_KEY;
 
 /**
- * Translate text array using Gemini AI
+ * Translate text array using Gemini AI (Direct REST API)
  * @param {string[]} textArray - Array of text to translate
  * @param {string} targetLanguage - Target language code
  * @returns {Promise<string[]>} - Translated text array
@@ -23,6 +12,12 @@ const getGeminiAI = () => {
 export const translateTextArray = async (textArray, targetLanguage = 'en') => {
     if (!textArray || textArray.length === 0) return [];
     if (targetLanguage === 'en') return textArray; // No translation needed for English
+
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) {
+        console.error('GEMINI_API_KEY is not configured');
+        return textArray;
+    }
 
     const languageNames = {
         en: 'English',
@@ -38,9 +33,6 @@ export const translateTextArray = async (textArray, targetLanguage = 'en') => {
     const targetLang = languageNames[targetLanguage] || 'English';
 
     try {
-        const ai = getGeminiAI();
-        const model = ai.getGenerativeModel({ model: 'gemini-pro' });
-
         const prompt = `Translate the following text items to ${targetLang}. Return ONLY a JSON array with the translations in the same order.
 
 Text to translate:
@@ -50,19 +42,43 @@ Return format: ["translation 1", "translation 2", ...]
 
 IMPORTANT: Return ONLY the JSON array, no markdown formatting, no explanations.`;
 
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-        let text = response.text().trim();
+        const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }]
+            })
+        });
 
-        // Remove markdown code blocks if present
-        if (text.startsWith('```json')) {
-            text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-        } else if (text.startsWith('```')) {
-            text = text.replace(/```\n?/g, '');
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Gemini API error: ${response.status} ${response.statusText}`, errorText);
+            return textArray;
         }
 
-        const translated = JSON.parse(text);
-        return Array.isArray(translated) ? translated : textArray;
+        const data = await response.json();
+
+        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+            let text = data.candidates[0].content.parts[0].text.trim();
+
+            // Remove markdown code blocks if present
+            if (text.startsWith('```json')) {
+                text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+            } else if (text.startsWith('```')) {
+                text = text.replace(/```\n?/g, '');
+            }
+
+            const translated = JSON.parse(text);
+            return Array.isArray(translated) ? translated : textArray;
+        }
+
+        return textArray;
     } catch (error) {
         console.error('Translation error:', error);
         return textArray; // Return original if translation fails
@@ -70,16 +86,18 @@ IMPORTANT: Return ONLY the JSON array, no markdown formatting, no explanations.`
 };
 
 /**
- * Analyze custom symptom using Gemini AI
+ * Analyze custom symptom using Gemini AI (Direct REST API)
  * @param {string} symptomText - User's symptom description
  * @param {string} language - Target language for response
  * @returns {Promise<Object>} - Analyzed symptom with suggestions
  */
 export const analyzeSymptomWithAI = async (symptomText, language = 'en') => {
-    try {
-        const ai = getGeminiAI();
-        const model = ai.getGenerativeModel({ model: 'gemini-pro' });
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) {
+        throw new Error('GEMINI_API_KEY is not configured');
+    }
 
+    try {
         const languageNames = {
             en: 'English',
             hi: 'Hindi',
@@ -128,24 +146,47 @@ IMPORTANT:
 6. Be conservative and safe with medical advice
 7. Return ONLY valid JSON, no markdown formatting`;
 
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-        const text = response.text();
+        const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: prompt
+                    }]
+                }]
+            })
+        });
 
-        // Extract JSON from response (remove markdown code blocks if present)
-        let jsonText = text.trim();
-        if (jsonText.startsWith('```json')) {
-            jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-        } else if (jsonText.startsWith('```')) {
-            jsonText = jsonText.replace(/```\n?/g, '');
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Gemini API error: ${response.status} ${errorText}`);
         }
 
-        const parsedResponse = JSON.parse(jsonText);
+        const data = await response.json();
 
-        return {
-            success: true,
-            data: parsedResponse
-        };
+        if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+            const text = data.candidates[0].content.parts[0].text;
+
+            // Extract JSON from response (remove markdown code blocks if present)
+            let jsonText = text.trim();
+            if (jsonText.startsWith('```json')) {
+                jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+            } else if (jsonText.startsWith('```')) {
+                jsonText = jsonText.replace(/```\n?/g, '');
+            }
+
+            const parsedResponse = JSON.parse(jsonText);
+
+            return {
+                success: true,
+                data: parsedResponse
+            };
+        }
+
+        throw new Error('No content generated from Gemini');
     } catch (error) {
         console.error('Error analyzing symptom with AI:', error);
         throw new Error('Failed to analyze symptom. Please try again.');
