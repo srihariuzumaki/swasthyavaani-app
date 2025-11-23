@@ -254,21 +254,22 @@ See `BUILD_APK.md` for detailed Android build instructions.
 
 ## 📊 Project Status
 
-### ✅ Completed Features (70%)
+### ✅ Completed Features (75%)
 
 - [x] User authentication & authorization
 - [x] Medicine database with 100+ medicines
-- [x] **Medicine label OCR scanning**
+- [x] **Medicine label OCR scanning** ⭐
 - [x] **Pattern-based data extraction**
 - [x] **Fuzzy matching for error correction**
 - [x] **Confidence scoring system**
+- [x] **Voice output** (Text-to-speech)
 - [x] Multilingual support (8 languages)
 - [x] Dark mode
 - [x] Mobile app (Android/iOS)
 - [x] Camera integration
 - [x] Backend deployment (Vercel)
 
-### 🚧 Remaining Features (30%)
+### 🚧 Remaining Features (25%)
 
 #### Core Features (High Priority)
 - [ ] **AI Health Assistant** - Backend integration for AI chat
@@ -276,7 +277,6 @@ See `BUILD_APK.md` for detailed Android build instructions.
 - [ ] **Symptom Checker** - Backend integration for symptom analysis
 - [ ] **Expiry Date Display** - Show expiry date in medicine details UI
 - [ ] **OCR Results UI** - Display extracted fields from scanned labels
-- [ ] **Voice Output** - Text-to-speech implementation
 
 #### Future Enhancements (Optional)
 - [ ] Push notifications for reminders (web)
