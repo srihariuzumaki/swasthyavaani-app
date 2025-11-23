@@ -185,9 +185,14 @@ router.post('/check', [
     body('symptoms.*')
         .isMongoId()
         .withMessage('Invalid symptom ID'),
-], validateRequest, async (req, res, next) => {
+    body('language')
+        .optional()
+        .isIn(['en', 'hi', 'ta', 'te', 'bn', 'mr', 'gu', 'kn'])
+        .withMessage('Invalid language code'),
+    validateRequest,
+], async (req, res, next) => {
     try {
-        const { symptoms } = req.body;
+        const { symptoms, language = 'en' } = req.body;
 
         const symptomDetails = await Symptom.find({
             _id: { $in: symptoms },
@@ -230,14 +235,32 @@ router.post('/check', [
         const uniqueHomeRemedies = [...new Set(allHomeRemedies)];
         const uniqueWarnings = [...new Set(allWarnings)];
 
+        // Translate content if not English
+        let translatedRemedies = uniqueHomeRemedies;
+        let translatedWarnings = uniqueWarnings;
+
+        if (language !== 'en') {
+            const { translateTextArray } = await import('../utils/symptomAI.js');
+            
+            try {
+                [translatedRemedies, translatedWarnings] = await Promise.all([
+                    translateTextArray(uniqueHomeRemedies, language),
+                    translateTextArray(uniqueWarnings, language)
+                ]);
+            } catch (error) {
+                console.error('Translation error:', error);
+                // Fall back to English if translation fails
+            }
+        }
+
         res.json({
             status: 'success',
             data: {
                 symptoms: symptomDetails,
                 suggestions: {
                     medicines: uniqueMedicines,
-                    homeRemedies: uniqueHomeRemedies,
-                    warnings: uniqueWarnings,
+                    homeRemedies: translatedRemedies,
+                    warnings: translatedWarnings,
                 },
             },
         });
