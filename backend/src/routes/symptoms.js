@@ -301,6 +301,36 @@ router.post('/check', [
     }
 });
 
+// @route   POST /api/symptoms/analyze
+// @desc    Analyze custom symptom using AI
+// @access  Public
+router.post('/analyze', [
+    body('symptomText')
+        .trim()
+        .notEmpty()
+        .withMessage('Symptom description is required')
+        .isLength({ min: 3, max: 500 })
+        .withMessage('Symptom description must be between 3 and 500 characters'),
+    body('language')
+        .optional()
+        .isIn(['en', 'hi', 'ta', 'te', 'bn', 'mr', 'gu', 'kn'])
+        .withMessage('Invalid language code'),
+    validateRequest,
+], async (req, res, next) => {
+    try {
+        const { symptomText, language = 'en' } = req.body;
+
+        const result = await analyzeSymptomWithAI(symptomText, language);
+
+        res.json({
+            status: 'success',
+            data: result.data
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
 // Admin routes (require authentication)
 router.use(authenticate);
 
@@ -421,34 +451,6 @@ router.delete('/:id', async (req, res, next) => {
     }
 });
 
-// @route   POST /api/symptoms/analyze
-// @desc    Analyze custom symptom using AI
-// @access  Public
-router.post('/analyze', [
-    body('symptomText')
-        .trim()
-        .notEmpty()
-        .withMessage('Symptom description is required')
-        .isLength({ min: 3, max: 500 })
-        .withMessage('Symptom description must be between 3 and 500 characters'),
-    body('language')
-        .optional()
-        .isIn(['en', 'hi', 'ta', 'te', 'bn', 'mr', 'gu', 'kn'])
-        .withMessage('Invalid language code'),
-    validateRequest,
-], async (req, res, next) => {
-    try {
-        const { symptomText, language = 'en' } = req.body;
 
-        const result = await analyzeSymptomWithAI(symptomText, language);
-
-        res.json({
-            status: 'success',
-            data: result.data
-        });
-    } catch (error) {
-        next(error);
-    }
-});
 
 export default router;
