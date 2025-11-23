@@ -30,11 +30,17 @@ const Reminders = () => {
   useEffect(() => {
     fetchReminders();
     requestNotificationPermissions();
+    initNotificationListeners();
   }, []);
 
   const requestNotificationPermissions = async () => {
     const { notificationService } = await import('@/lib/notificationService');
     await notificationService.requestPermissions();
+  };
+
+  const initNotificationListeners = async () => {
+    const { notificationService } = await import('@/lib/notificationService');
+    await notificationService.initListeners();
   };
 
   const fetchReminders = async () => {

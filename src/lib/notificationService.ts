@@ -3,7 +3,22 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 export const notificationService = {
     async requestPermissions() {
         const result = await LocalNotifications.requestPermissions();
+        if (result.display === 'granted') {
+            await this.createChannel();
+        }
         return result.display === 'granted';
+    },
+
+    async createChannel() {
+        await LocalNotifications.createChannel({
+            id: 'medication-reminders',
+            name: 'Medication Reminders',
+            description: 'Reminders to take your medication',
+            importance: 5, // High importance
+            visibility: 1, // Public
+            sound: 'beep.wav',
+            vibration: true,
+        });
     },
 
     async scheduleReminder(reminder: any) {
@@ -29,13 +44,17 @@ export const notificationService = {
                         minute: minutes,
                     },
                     allowWhileIdle: true,
-                    every: 'day' // Default to daily for now
+                    every: 'day'
                 },
+                channelId: 'medication-reminders', // Use the created channel
                 sound: 'beep.wav',
                 attachments: [],
                 actionTypeId: '',
                 extra: {
-                    reminderId: reminder._id
+                    reminderId: reminder._id,
+                    medicineName: reminder.medicineName,
+                    dosage: reminder.dosage,
+                    instruction: reminder.instruction
                 }
             });
         });
@@ -53,5 +72,30 @@ export const notificationService = {
 
     async getAllScheduled() {
         return await LocalNotifications.getPending();
+    },
+
+    // Initialize listeners for TTS
+    async initListeners() {
+        await LocalNotifications.addListener('localNotificationReceived', async (notification) => {
+            console.log('Notification received:', notification);
+            if (notification.extra?.medicineName) {
+                const text = `It's time to take ${notification.extra.medicineName}. ${notification.extra.dosage || ''}`;
+                const { voiceService } = await import('./voiceService');
+                // Use a slight delay to ensure audio focus
+                setTimeout(() => {
+                    voiceService.textToSpeech(text, 'en'); // Default to English for now, or fetch user lang
+                }, 1000);
+            }
+        });
+
+        await LocalNotifications.addListener('localNotificationActionPerformed', async (notificationAction) => {
+            console.log('Notification action performed:', notificationAction);
+            const notification = notificationAction.notification;
+            if (notification.extra?.medicineName) {
+                const text = `You need to take ${notification.extra.medicineName}. ${notification.extra.dosage || ''} ${notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : ''}`;
+                const { voiceService } = await import('./voiceService');
+                voiceService.textToSpeech(text, 'en');
+            }
+        });
     }
 };
