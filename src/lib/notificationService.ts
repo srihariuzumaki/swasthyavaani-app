@@ -102,36 +102,35 @@ export const notificationService = {
         return await LocalNotifications.getPending();
     },
 
-
-
     // Initialize listeners for TTS
     async initListeners() {
         await LocalNotifications.addListener('localNotificationReceived', async (notification) => {
             console.log('Notification received:', notification);
             if (notification.extra?.medicineName) {
                 const { voiceService } = await import('./voiceService');
-                const i18n = (await import('../i18n/config')).default;
+                const { resources } = await import('../i18n/config');
 
-                // Force check localStorage to ensure we have the latest language
-                const savedLang = localStorage.getItem('app_language');
-                if (savedLang && savedLang !== i18n.language) {
-                    await i18n.changeLanguage(savedLang);
-                }
+                // Get language from localStorage
+                const lang = localStorage.getItem('app_language') || 'en';
+                console.log('TTS Language:', lang);
 
-                console.log('Current Language:', i18n.language);
+                // Manual translation lookup to avoid i18n initialization issues
+                // @ts-ignore
+                const translation = resources[lang]?.translation?.reminders?.ttsMessage || resources['en'].translation.reminders.ttsMessage;
 
                 const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
-                const text = i18n.t('reminders.ttsMessage', {
-                    medicineName: notification.extra.medicineName,
-                    dosage: notification.extra.dosage || '',
-                    instruction: instruction
-                });
 
-                console.log('TTS Text:', text);
+                // Manual interpolation
+                const text = translation
+                    .replace('{{medicineName}}', notification.extra.medicineName)
+                    .replace('{{dosage}}', notification.extra.dosage || '')
+                    .replace('{{instruction}}', instruction);
+
+                console.log('TTS Text (Manual):', text);
 
                 // Use a slight delay to ensure audio focus
                 setTimeout(() => {
-                    voiceService.textToSpeech(text, i18n.language);
+                    voiceService.textToSpeech(text, lang);
                 }, 1000);
             }
         });
@@ -141,26 +140,27 @@ export const notificationService = {
             const notification = notificationAction.notification;
             if (notification.extra?.medicineName) {
                 const { voiceService } = await import('./voiceService');
-                const i18n = (await import('../i18n/config')).default;
+                const { resources } = await import('../i18n/config');
 
-                // Force check localStorage to ensure we have the latest language
-                const savedLang = localStorage.getItem('app_language');
-                if (savedLang && savedLang !== i18n.language) {
-                    await i18n.changeLanguage(savedLang);
-                }
+                // Get language from localStorage
+                const lang = localStorage.getItem('app_language') || 'en';
+                console.log('TTS Language (Action):', lang);
 
-                console.log('Current Language (Action):', i18n.language);
+                // Manual translation lookup
+                // @ts-ignore
+                const translation = resources[lang]?.translation?.reminders?.ttsMessage || resources['en'].translation.reminders.ttsMessage;
 
                 const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
-                const text = i18n.t('reminders.ttsMessage', {
-                    medicineName: notification.extra.medicineName,
-                    dosage: notification.extra.dosage || '',
-                    instruction: instruction
-                });
 
-                console.log('TTS Text (Action):', text);
+                // Manual interpolation
+                const text = translation
+                    .replace('{{medicineName}}', notification.extra.medicineName)
+                    .replace('{{dosage}}', notification.extra.dosage || '')
+                    .replace('{{instruction}}', instruction);
 
-                voiceService.textToSpeech(text, i18n.language);
+                console.log('TTS Text (Action Manual):', text);
+
+                voiceService.textToSpeech(text, lang);
             }
         });
     }

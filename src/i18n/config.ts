@@ -17,19 +17,21 @@ const getInitialLanguage = () => {
   return savedLanguage || 'en';
 };
 
+export const resources = {
+  en: { translation: enTranslations },
+  hi: { translation: hiTranslations },
+  ta: { translation: taTranslations },
+  te: { translation: teTranslations },
+  bn: { translation: bnTranslations },
+  mr: { translation: mrTranslations },
+  gu: { translation: guTranslations },
+  kn: { translation: knTranslations },
+};
+
 i18n
   .use(initReactI18next)
   .init({
-    resources: {
-      en: { translation: enTranslations },
-      hi: { translation: hiTranslations },
-      ta: { translation: taTranslations },
-      te: { translation: teTranslations },
-      bn: { translation: bnTranslations },
-      mr: { translation: mrTranslations },
-      gu: { translation: guTranslations },
-      kn: { translation: knTranslations },
-    },
+    resources,
     lng: getInitialLanguage(),
     fallbackLng: 'en',
     interpolation: {
@@ -41,4 +43,3 @@ i18n
   });
 
 export default i18n;
-
