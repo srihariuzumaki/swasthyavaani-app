@@ -58,6 +58,17 @@ const symptomSchema = new mongoose.Schema({
         type: String,
         lowercase: true,
     }],
+    // Multilingual symptom names
+    translations: {
+        en: { name: String, description: String },
+        hi: { name: String, description: String },
+        ta: { name: String, description: String },
+        te: { name: String, description: String },
+        bn: { name: String, description: String },
+        mr: { name: String, description: String },
+        gu: { name: String, description: String },
+        kn: { name: String, description: String },
+    },
 }, {
     timestamps: true,
 });
