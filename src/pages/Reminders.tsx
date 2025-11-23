@@ -98,6 +98,17 @@ const Reminders = () => {
     }
   };
 
+  const handleTestNotification = async () => {
+    try {
+      const { notificationService } = await import('@/lib/notificationService');
+      await notificationService.testNotification();
+      toast.info("Test notification scheduled for 5 seconds from now");
+    } catch (error) {
+      console.error('Test notification failed:', error);
+      toast.error("Failed to schedule test notification");
+    }
+  };
+
   const isTakenToday = (reminder: Reminder, time: string) => {
     const today = new Date().toISOString().split('T')[0];
     return reminder.completedDoses?.some(d =>
@@ -138,15 +149,24 @@ const Reminders = () => {
       </div>
 
       <div className="px-4 mt-6">
-        {/* Add Button */}
-        <Button
-          onClick={() => setShowAddDialog(true)}
-          size="lg"
-          className="w-full mb-6 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity shadow-[var(--shadow-medical)]"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          {t("reminders.addNewReminder", { defaultValue: "Add New Reminder" })}
-        </Button>
+        {/* Add Button & Test Button */}
+        <div className="flex gap-2 mb-6">
+          <Button
+            onClick={() => setShowAddDialog(true)}
+            size="lg"
+            className="flex-1 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity shadow-[var(--shadow-medical)]"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            {t("reminders.addNewReminder", { defaultValue: "Add New Reminder" })}
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={handleTestNotification}
+          >
+            Test
+          </Button>
+        </div>
 
         {loading ? (
           <div className="flex justify-center py-8">

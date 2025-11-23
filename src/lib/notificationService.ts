@@ -24,6 +24,9 @@ export const notificationService = {
     async scheduleReminder(reminder: any) {
         if (!reminder.isActive) return;
 
+        // Ensure channel exists
+        await this.createChannel();
+
         const notifications = [];
 
         // Schedule for each time
@@ -31,7 +34,6 @@ export const notificationService = {
             const [hours, minutes] = time.split(':').map(Number);
 
             // Create a unique ID for each notification instance
-            // Using reminder ID hash + index might be better, but for now using random IDs stored in backend
             const id = reminder.notificationIds?.[index] || Math.floor(Math.random() * 1000000);
 
             notifications.push({
@@ -46,7 +48,7 @@ export const notificationService = {
                     allowWhileIdle: true,
                     every: 'day'
                 },
-                channelId: 'medication-reminders', // Use the created channel
+                channelId: 'medication-reminders',
                 sound: 'beep.wav',
                 attachments: [],
                 actionTypeId: '',
@@ -72,6 +74,27 @@ export const notificationService = {
 
     async getAllScheduled() {
         return await LocalNotifications.getPending();
+    },
+
+    async testNotification() {
+        await this.createChannel();
+        const id = Math.floor(Math.random() * 1000000);
+        await LocalNotifications.schedule({
+            notifications: [{
+                title: "Test Reminder",
+                body: "This is a test notification. You should hear a voice now.",
+                id: id,
+                schedule: { at: new Date(Date.now() + 5000) }, // 5 seconds from now
+                channelId: 'medication-reminders',
+                sound: 'beep.wav',
+                extra: {
+                    medicineName: "Test Medicine",
+                    dosage: "500mg",
+                    instruction: "after_food"
+                }
+            }]
+        });
+        return id;
     },
 
     // Initialize listeners for TTS
