@@ -193,10 +193,12 @@ router.post('/check', [
             }
         });
 
-        // Remove duplicates
-        const uniqueMedicines = allMedicines.filter((medicine, index, self) =>
-            index === self.findIndex(m => m.medicine._id.toString() === medicine.medicine._id.toString())
-        );
+        // Remove duplicates and filter out null medicines
+        const uniqueMedicines = allMedicines
+            .filter(item => item && item.medicine && item.medicine._id) // Filter out null/undefined
+            .filter((medicine, index, self) =>
+                index === self.findIndex(m => m.medicine._id.toString() === medicine.medicine._id.toString())
+            );
 
         const uniqueHomeRemedies = [...new Set(allHomeRemedies)];
         const uniqueWarnings = [...new Set(allWarnings)];
