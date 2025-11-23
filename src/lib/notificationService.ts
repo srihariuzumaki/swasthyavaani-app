@@ -102,26 +102,7 @@ export const notificationService = {
         return await LocalNotifications.getPending();
     },
 
-    async testNotification() {
-        await this.createChannel();
-        const id = Math.floor(Math.random() * 1000000);
-        await LocalNotifications.schedule({
-            notifications: [{
-                title: "Test Reminder",
-                body: "This is a test notification. You should hear a voice now.",
-                id: id,
-                schedule: { at: new Date(Date.now() + 5000) }, // 5 seconds from now
-                channelId: 'medication-reminders',
-                sound: 'beep.wav',
-                extra: {
-                    medicineName: "Test Medicine",
-                    dosage: "500mg",
-                    instruction: "after_food"
-                }
-            }]
-        });
-        return id;
-    },
+
 
     // Initialize listeners for TTS
     async initListeners() {
@@ -131,12 +112,22 @@ export const notificationService = {
                 const { voiceService } = await import('./voiceService');
                 const i18n = (await import('../i18n/config')).default;
 
+                // Force check localStorage to ensure we have the latest language
+                const savedLang = localStorage.getItem('app_language');
+                if (savedLang && savedLang !== i18n.language) {
+                    await i18n.changeLanguage(savedLang);
+                }
+
+                console.log('Current Language:', i18n.language);
+
                 const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
                 const text = i18n.t('reminders.ttsMessage', {
                     medicineName: notification.extra.medicineName,
                     dosage: notification.extra.dosage || '',
                     instruction: instruction
                 });
+
+                console.log('TTS Text:', text);
 
                 // Use a slight delay to ensure audio focus
                 setTimeout(() => {
@@ -152,12 +143,22 @@ export const notificationService = {
                 const { voiceService } = await import('./voiceService');
                 const i18n = (await import('../i18n/config')).default;
 
+                // Force check localStorage to ensure we have the latest language
+                const savedLang = localStorage.getItem('app_language');
+                if (savedLang && savedLang !== i18n.language) {
+                    await i18n.changeLanguage(savedLang);
+                }
+
+                console.log('Current Language (Action):', i18n.language);
+
                 const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
                 const text = i18n.t('reminders.ttsMessage', {
                     medicineName: notification.extra.medicineName,
                     dosage: notification.extra.dosage || '',
                     instruction: instruction
                 });
+
+                console.log('TTS Text (Action):', text);
 
                 voiceService.textToSpeech(text, i18n.language);
             }
