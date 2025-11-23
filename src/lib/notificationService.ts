@@ -41,6 +41,18 @@ export const notificationService = {
 
                 console.log(`Scheduling reminder for ${reminder.medicineName} at ${hours}:${minutes} with ID ${id}`);
 
+                // Calculate next occurrence for user feedback
+                const now = new Date();
+                const scheduledTime = new Date();
+                scheduledTime.setHours(hours, minutes, 0, 0);
+
+                let timeDesc = scheduledTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                if (scheduledTime <= now) {
+                    timeDesc += " (Tomorrow)";
+                } else {
+                    timeDesc += " (Today)";
+                }
+
                 notifications.push({
                     title: `Time for your medicine: ${reminder.medicineName}`,
                     body: `Take ${reminder.dosage} ${reminder.instruction !== 'none' ? `(${reminder.instruction.replace('_', ' ')})` : ''}`,
@@ -50,8 +62,7 @@ export const notificationService = {
                             hour: hours,
                             minute: minutes,
                         },
-                        allowWhileIdle: true,
-                        every: 'day'
+                        allowWhileIdle: true
                     },
                     channelId: 'medication-reminders',
                     sound: 'beep.wav',
@@ -64,12 +75,16 @@ export const notificationService = {
                         instruction: reminder.instruction
                     }
                 });
+
+                // Show toast for the first time slot as confirmation
+                if (index === 0) {
+                    toast.success(`Scheduled for ${timeDesc}`);
+                }
             });
 
             if (notifications.length > 0) {
                 await LocalNotifications.schedule({ notifications });
                 console.log('Notifications scheduled successfully');
-                toast.success("Notification scheduled");
             }
         } catch (error) {
             console.error('Error scheduling reminder:', error);
