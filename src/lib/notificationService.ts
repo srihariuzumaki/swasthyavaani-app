@@ -1,4 +1,5 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { toast } from "sonner";
 
 export const notificationService = {
     async requestPermissions() {
@@ -22,47 +23,57 @@ export const notificationService = {
     },
 
     async scheduleReminder(reminder: any) {
-        if (!reminder.isActive) return;
+        // Default to true if undefined, only return if explicitly false
+        if (reminder.isActive === false) return;
 
-        // Ensure channel exists
-        await this.createChannel();
+        try {
+            // Ensure channel exists
+            await this.createChannel();
 
-        const notifications = [];
+            const notifications: any[] = [];
 
-        // Schedule for each time
-        reminder.times.forEach((time: string, index: number) => {
-            const [hours, minutes] = time.split(':').map(Number);
+            // Schedule for each time
+            reminder.times.forEach((time: string, index: number) => {
+                const [hours, minutes] = time.split(':').map(Number);
 
-            // Create a unique ID for each notification instance
-            const id = reminder.notificationIds?.[index] || Math.floor(Math.random() * 1000000);
+                // Create a unique ID for each notification instance
+                const id = reminder.notificationIds?.[index] || Math.floor(Math.random() * 1000000);
 
-            notifications.push({
-                title: `Time for your medicine: ${reminder.medicineName}`,
-                body: `Take ${reminder.dosage} ${reminder.instruction !== 'none' ? `(${reminder.instruction.replace('_', ' ')})` : ''}`,
-                id: id,
-                schedule: {
-                    on: {
-                        hour: hours,
-                        minute: minutes,
+                console.log(`Scheduling reminder for ${reminder.medicineName} at ${hours}:${minutes} with ID ${id}`);
+
+                notifications.push({
+                    title: `Time for your medicine: ${reminder.medicineName}`,
+                    body: `Take ${reminder.dosage} ${reminder.instruction !== 'none' ? `(${reminder.instruction.replace('_', ' ')})` : ''}`,
+                    id: id,
+                    schedule: {
+                        on: {
+                            hour: hours,
+                            minute: minutes,
+                        },
+                        allowWhileIdle: true,
+                        every: 'day'
                     },
-                    allowWhileIdle: true,
-                    every: 'day'
-                },
-                channelId: 'medication-reminders',
-                sound: 'beep.wav',
-                attachments: [],
-                actionTypeId: '',
-                extra: {
-                    reminderId: reminder._id,
-                    medicineName: reminder.medicineName,
-                    dosage: reminder.dosage,
-                    instruction: reminder.instruction
-                }
+                    channelId: 'medication-reminders',
+                    sound: 'beep.wav',
+                    attachments: [],
+                    actionTypeId: '',
+                    extra: {
+                        reminderId: reminder._id,
+                        medicineName: reminder.medicineName,
+                        dosage: reminder.dosage,
+                        instruction: reminder.instruction
+                    }
+                });
             });
-        });
 
-        if (notifications.length > 0) {
-            await LocalNotifications.schedule({ notifications });
+            if (notifications.length > 0) {
+                await LocalNotifications.schedule({ notifications });
+                console.log('Notifications scheduled successfully');
+                toast.success("Notification scheduled");
+            }
+        } catch (error) {
+            console.error('Error scheduling reminder:', error);
+            toast.error("Failed to schedule notification");
         }
     },
 
