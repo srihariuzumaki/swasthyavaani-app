@@ -162,6 +162,12 @@ class ApiClient {
         });
     }
 
+    async delete<T>(endpoint: string) {
+        return this.request<ApiResponse<T>>(endpoint, {
+            method: 'DELETE'
+        });
+    }
+
     // User endpoints
     async getProfile() {
         return this.request('/users/profile');

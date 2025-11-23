@@ -64,37 +64,47 @@ router.get('/:id', async (req, res, next) => {
 // @desc    Create a new reminder
 // @access  Private
 router.post('/', [
-    body('medicine')
+    body('medicineName')
         .trim()
         .notEmpty()
         .withMessage('Medicine name is required')
         .isLength({ max: 100 })
         .withMessage('Medicine name cannot be more than 100 characters'),
-    body('dosage.amount')
-        .trim()
-        .notEmpty()
-        .withMessage('Dosage amount is required'),
-    body('dosage.unit')
-        .isIn(['mg', 'ml', 'tablet', 'capsule', 'drops', 'spoon', 'other'])
-        .withMessage('Invalid dosage unit'),
-    body('time')
+    body('type')
+        .optional()
+        .isIn(['tablet', 'syrup', 'injection', 'drops', 'inhaler', 'other'])
+        .withMessage('Invalid medicine type'),
+    body('dosage')
+        .optional()
+        .trim(),
+    body('times')
+        .isArray({ min: 1 })
+        .withMessage('At least one time is required'),
+    body('times.*')
         .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
         .withMessage('Please provide a valid time format (HH:MM)'),
     body('frequency')
-        .isIn(['once', 'daily', 'twice-daily', 'thrice-daily', 'weekly', 'as-needed'])
+        .isIn(['daily', 'weekly', 'once', 'custom'])
         .withMessage('Invalid frequency value'),
+    body('selectedDays')
+        .optional()
+        .isArray()
+        .withMessage('Selected days must be an array'),
     body('startDate')
+        .optional()
         .isISO8601()
         .withMessage('Please provide a valid start date'),
     body('endDate')
         .optional()
         .isISO8601()
         .withMessage('Please provide a valid end date'),
-    body('instructions')
+    body('instruction')
         .optional()
-        .trim()
-        .isLength({ max: 500 })
-        .withMessage('Instructions cannot be more than 500 characters'),
+        .isIn(['before_food', 'after_food', 'empty_stomach', 'with_food', 'none'])
+        .withMessage('Invalid instruction'),
+    body('notificationIds')
+        .optional()
+        .isArray(),
 ], validateRequest, async (req, res, next) => {
     try {
         const reminderData = {
@@ -119,28 +129,32 @@ router.post('/', [
 // @desc    Update a reminder
 // @access  Private
 router.put('/:id', [
-    body('medicine')
+    body('medicineName')
         .optional()
         .trim()
         .isLength({ max: 100 })
         .withMessage('Medicine name cannot be more than 100 characters'),
-    body('dosage.amount')
+    body('type')
         .optional()
-        .trim()
-        .notEmpty()
-        .withMessage('Dosage amount cannot be empty'),
-    body('dosage.unit')
+        .isIn(['tablet', 'syrup', 'injection', 'drops', 'inhaler', 'other'])
+        .withMessage('Invalid medicine type'),
+    body('dosage')
         .optional()
-        .isIn(['mg', 'ml', 'tablet', 'capsule', 'drops', 'spoon', 'other'])
-        .withMessage('Invalid dosage unit'),
-    body('time')
+        .trim(),
+    body('times')
         .optional()
+        .isArray({ min: 1 })
+        .withMessage('At least one time is required'),
+    body('times.*')
         .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
         .withMessage('Please provide a valid time format (HH:MM)'),
     body('frequency')
         .optional()
-        .isIn(['once', 'daily', 'twice-daily', 'thrice-daily', 'weekly', 'as-needed'])
+        .isIn(['daily', 'weekly', 'once', 'custom'])
         .withMessage('Invalid frequency value'),
+    body('selectedDays')
+        .optional()
+        .isArray(),
     body('startDate')
         .optional()
         .isISO8601()
@@ -149,11 +163,13 @@ router.put('/:id', [
         .optional()
         .isISO8601()
         .withMessage('Please provide a valid end date'),
-    body('instructions')
+    body('instruction')
         .optional()
-        .trim()
-        .isLength({ max: 500 })
-        .withMessage('Instructions cannot be more than 500 characters'),
+        .isIn(['before_food', 'after_food', 'empty_stomach', 'with_food', 'none'])
+        .withMessage('Invalid instruction'),
+    body('notificationIds')
+        .optional()
+        .isArray(),
 ], validateRequest, async (req, res, next) => {
     try {
         const reminder = await Reminder.findOneAndUpdate(
