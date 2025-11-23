@@ -238,15 +238,47 @@ router.post('/check', [
         // Translate content if not English
         let translatedRemedies = uniqueHomeRemedies;
         let translatedWarnings = uniqueWarnings;
+        let translatedMedicines = uniqueMedicines.map(m => {
+            return {
+                ...m.toObject(),
+                medicine: { ...m.medicine.toObject() }
+            };
+        });
 
         if (language !== 'en') {
             const { translateTextArray } = await import('../utils/symptomAI.js');
-            
+
             try {
-                [translatedRemedies, translatedWarnings] = await Promise.all([
+                // Prepare medicine text arrays
+                const medDescriptions = translatedMedicines.map(m => m.medicine?.description || '');
+                const medDosages = translatedMedicines.map(m => m.dosage || '');
+                const medNotes = translatedMedicines.map(m => m.notes || '');
+
+                // Translate everything in parallel
+                const [
+                    tRemedies,
+                    tWarnings,
+                    tDescriptions,
+                    tDosages,
+                    tNotes
+                ] = await Promise.all([
                     translateTextArray(uniqueHomeRemedies, language),
-                    translateTextArray(uniqueWarnings, language)
+                    translateTextArray(uniqueWarnings, language),
+                    translateTextArray(medDescriptions, language),
+                    translateTextArray(medDosages, language),
+                    translateTextArray(medNotes, language)
                 ]);
+
+                translatedRemedies = tRemedies;
+                translatedWarnings = tWarnings;
+
+                // Map translated values back to medicines
+                translatedMedicines.forEach((m, i) => {
+                    if (m.medicine && m.medicine.description) m.medicine.description = tDescriptions[i];
+                    if (m.dosage) m.dosage = tDosages[i];
+                    if (m.notes) m.notes = tNotes[i];
+                });
+
             } catch (error) {
                 console.error('Translation error:', error);
                 // Fall back to English if translation fails
@@ -258,7 +290,7 @@ router.post('/check', [
             data: {
                 symptoms: symptomDetails,
                 suggestions: {
-                    medicines: uniqueMedicines,
+                    medicines: translatedMedicines,
                     homeRemedies: translatedRemedies,
                     warnings: translatedWarnings,
                 },
