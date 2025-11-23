@@ -4,8 +4,34 @@ import Symptom from '../models/Symptom.js';
 import Medicine from '../models/Medicine.js';
 import { authenticate } from '../middleware/auth.js';
 import { validateRequest } from '../utils/validation.js';
+import { seedSymptoms } from '../utils/seedSymptoms.js';
 
 const router = express.Router();
+
+// @route   GET /api/symptoms/seed
+// @desc    Seed symptoms database (for development/setup)
+// @access  Public (should be protected in production)
+router.get('/seed', async (req, res, next) => {
+    try {
+        // Optional: Add secret key protection
+        const secret = req.query.secret;
+        if (process.env.NODE_ENV === 'production' && secret !== process.env.SEED_SECRET) {
+            return res.status(401).json({
+                status: 'error',
+                message: 'Unauthorized'
+            });
+        }
+
+        await seedSymptoms();
+
+        res.json({
+            status: 'success',
+            message: 'Symptoms seeded successfully! 🌱'
+        });
+    } catch (error) {
+        next(error);
+    }
+});
 
 // @route   GET /api/symptoms
 // @desc    Search symptoms
