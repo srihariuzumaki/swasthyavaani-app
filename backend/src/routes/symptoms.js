@@ -5,6 +5,7 @@ import Medicine from '../models/Medicine.js';
 import { authenticate } from '../middleware/auth.js';
 import { validateRequest } from '../utils/validation.js';
 import { seedSymptoms } from '../utils/seedSymptoms.js';
+import { analyzeSymptomWithAI } from '../utils/symptomAI.js';
 
 const router = express.Router();
 
@@ -359,6 +360,36 @@ router.delete('/:id', async (req, res, next) => {
         res.json({
             status: 'success',
             message: 'Symptom deleted successfully',
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
+// @route   POST /api/symptoms/analyze
+// @desc    Analyze custom symptom using AI
+// @access  Public
+router.post('/analyze', [
+    body('symptomText')
+        .trim()
+        .notEmpty()
+        .withMessage('Symptom description is required')
+        .isLength({ min: 3, max: 500 })
+        .withMessage('Symptom description must be between 3 and 500 characters'),
+    body('language')
+        .optional()
+        .isIn(['en', 'hi', 'ta', 'te', 'bn', 'mr', 'gu', 'kn'])
+        .withMessage('Invalid language code'),
+    validateRequest,
+], async (req, res, next) => {
+    try {
+        const { symptomText, language = 'en' } = req.body;
+
+        const result = await analyzeSymptomWithAI(symptomText, language);
+
+        res.json({
+            status: 'success',
+            data: result.data
         });
     } catch (error) {
         next(error);

@@ -94,6 +94,16 @@
     "disclaimer": "This is for information only. Please consult a doctor for proper diagnosis.",
     "suggestedMedicines": "Suggested Medicines",
     "checkDifferentSymptoms": "Check Different Symptoms",
+    "searchPlaceholder": "Search symptoms...",
+    "customSymptom": "Describe your symptom",
+    "customSymptomPlaceholder": "E.g., stomach pain after eating",
+    "analyzeWithAI": "Analyze with AI",
+    "analyzing": "Analyzing...",
+    "aiSuggestions": "AI Suggestions",
+    "homeRemedies": "Home Remedies",
+    "whenToSeeDoctor": "When to See a Doctor",
+    "dosage": "Dosage",
+    "note": "Note",
     "headache": "Headache",
     "fever": "Fever",
     "cough": "Cough",
@@ -218,4 +228,3 @@
     "kn": "ಕನ್ನಡ (Kannada)"
   }
 }
-

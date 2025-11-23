@@ -394,11 +394,11 @@ const Symptoms = () => {
                         <p className="text-sm text-muted-foreground mb-2">{suggestion.medicine.description}</p>
                       )}
                       <div className="text-xs text-foreground/70">
-                        <span className="font-medium">Dosage:</span> {suggestion.dosage}
+                        <span className="font-medium">{t("symptoms.dosage", { defaultValue: "Dosage" })}:</span> {suggestion.dosage}
                       </div>
                       {suggestion.notes && (
                         <div className="text-xs text-amber-600 mt-1">
-                          <span className="font-medium">Note:</span> {suggestion.notes}
+                          <span className="font-medium">{t("symptoms.note", { defaultValue: "Note" })}:</span> {suggestion.notes}
                         </div>
                       )}
                     </Card>
@@ -410,7 +410,7 @@ const Symptoms = () => {
             {/* Home Remedies */}
             {results.suggestions.homeRemedies.length > 0 && (
               <>
-                <h2 className="text-lg font-semibold mb-4">Home Remedies</h2>
+                <h2 className="text-lg font-semibold mb-4">{t("symptoms.homeRemedies", { defaultValue: "Home Remedies" })}</h2>
                 <Card className="p-4 mb-6">
                   <ul className="space-y-2">
                     {results.suggestions.homeRemedies.map((remedy, index) => (
@@ -427,7 +427,7 @@ const Symptoms = () => {
             {/* Warnings */}
             {results.suggestions.warnings.length > 0 && (
               <>
-                <h2 className="text-lg font-semibold mb-4 text-red-600">When to See a Doctor</h2>
+                <h2 className="text-lg font-semibold mb-4 text-red-600">{t("symptoms.whenToSeeDoctor", { defaultValue: "When to See a Doctor" })}</h2>
                 <Card className="p-4 mb-6 border-red-200 bg-red-50 dark:bg-red-950/20">
                   <ul className="space-y-2">
                     {results.suggestions.warnings.map((warning, index) => (
