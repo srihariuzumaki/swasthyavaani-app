@@ -128,11 +128,19 @@ export const notificationService = {
         await LocalNotifications.addListener('localNotificationReceived', async (notification) => {
             console.log('Notification received:', notification);
             if (notification.extra?.medicineName) {
-                const text = `It's time to take ${notification.extra.medicineName}. ${notification.extra.dosage || ''}`;
                 const { voiceService } = await import('./voiceService');
+                const i18n = (await import('../i18n/config')).default;
+
+                const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
+                const text = i18n.t('reminders.ttsMessage', {
+                    medicineName: notification.extra.medicineName,
+                    dosage: notification.extra.dosage || '',
+                    instruction: instruction
+                });
+
                 // Use a slight delay to ensure audio focus
                 setTimeout(() => {
-                    voiceService.textToSpeech(text, 'en'); // Default to English for now, or fetch user lang
+                    voiceService.textToSpeech(text, i18n.language);
                 }, 1000);
             }
         });
@@ -141,9 +149,17 @@ export const notificationService = {
             console.log('Notification action performed:', notificationAction);
             const notification = notificationAction.notification;
             if (notification.extra?.medicineName) {
-                const text = `You need to take ${notification.extra.medicineName}. ${notification.extra.dosage || ''} ${notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : ''}`;
                 const { voiceService } = await import('./voiceService');
-                voiceService.textToSpeech(text, 'en');
+                const i18n = (await import('../i18n/config')).default;
+
+                const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
+                const text = i18n.t('reminders.ttsMessage', {
+                    medicineName: notification.extra.medicineName,
+                    dosage: notification.extra.dosage || '',
+                    instruction: instruction
+                });
+
+                voiceService.textToSpeech(text, i18n.language);
             }
         });
     }

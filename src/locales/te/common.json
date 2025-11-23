@@ -117,7 +117,10 @@
     "addReminderComingSoon": "జ్ఞాపకం ఫీచర్ త్వరలో రాబోతోంది!",
     "daily": "రోజువారీ",
     "weekly": "వారానికి",
-    "monthly": "నెలవారీ"
+    "monthly": "నెలవారీ",
+    "notificationTitle": "మీ మందు సమయం: {{medicineName}}",
+    "notificationBody": "{{dosage}} తీసుకోండి {{instruction}}",
+    "ttsMessage": "మీ మందు {{medicineName}} తీసుకునే సమయం ఆసన్నమైంది. {{dosage}} {{instruction}}"
   },
   "onboarding": {
     "slide1Title": "AI అసిస్టెంట్ తో మాట్లాడండి",

@@ -117,7 +117,10 @@
     "addReminderComingSoon": "অনুস্মারক বৈশিষ্ট্য শীঘ্রই আসছে!",
     "daily": "দৈনিক",
     "weekly": "সাপ্তাহিক",
-    "monthly": "মাসিক"
+    "monthly": "মাসিক",
+    "notificationTitle": "আপনার ওষুধের সময়: {{medicineName}}",
+    "notificationBody": "{{dosage}} নিন {{instruction}}",
+    "ttsMessage": "আপনার ওষুধ {{medicineName}} নেওয়ার সময় হয়েছে। {{dosage}} {{instruction}}"
   },
   "onboarding": {
     "slide1Title": "AI সহায়কের সাথে কথা বলুন",

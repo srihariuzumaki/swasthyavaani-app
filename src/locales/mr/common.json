@@ -117,7 +117,10 @@
     "addReminderComingSoon": "आठवण वैशिष्ट्य लवकरच येईल!",
     "daily": "दैनंदिन",
     "weekly": "साप्ताहिक",
-    "monthly": "मासिक"
+    "monthly": "मासिक",
+    "notificationTitle": "तुमच्या औषधाची वेळ: {{medicineName}}",
+    "notificationBody": "{{dosage}} घ्या {{instruction}}",
+    "ttsMessage": "तुमची औषधे {{medicineName}} घेण्याची वेळ झाली आहे. {{dosage}} {{instruction}}"
   },
   "onboarding": {
     "slide1Title": "AI असिस्टंटशी बोला",

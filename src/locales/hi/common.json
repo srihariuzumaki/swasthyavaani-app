@@ -117,7 +117,10 @@
     "addReminderComingSoon": "अनुस्मारक सुविधा जल्द ही आ रही है!",
     "daily": "दैनिक",
     "weekly": "साप्ताहिक",
-    "monthly": "मासिक"
+    "monthly": "मासिक",
+    "notificationTitle": "आपकी दवा का समय: {{medicineName}}",
+    "notificationBody": "{{dosage}} लें {{instruction}}",
+    "ttsMessage": "आपकी दवा {{medicineName}} लेने का समय हो गया है। {{dosage}} {{instruction}}"
   },
   "onboarding": {
     "slide1Title": "AI असिस्टेंट से बात करें",
