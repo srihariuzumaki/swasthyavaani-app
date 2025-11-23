@@ -366,6 +366,87 @@ const Symptoms = () => {
                 </Button>
               </>
             )}
+
+            {/* Custom Symptom Input */}
+            <div className="mt-8 pt-6 border-t border-border">
+              <h2 className="text-lg font-semibold mb-2">{t("symptoms.customSymptomTitle", { defaultValue: "Have a specific symptom?" })}</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                {t("symptoms.customSymptomDesc", { defaultValue: "Describe your symptom in your own words and let our AI analyze it." })}
+              </p>
+
+              <div className="space-y-4">
+                <textarea
+                  className="w-full min-h-[100px] p-3 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder={t("symptoms.customSymptomPlaceholder", { defaultValue: "E.g., I have a sharp pain in my stomach after eating spicy food..." })}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+
+                <Button
+                  onClick={async () => {
+                    if (!searchQuery.trim()) {
+                      toast.error(t("symptoms.enterSymptom", { defaultValue: "Please describe your symptom" }));
+                      return;
+                    }
+
+                    try {
+                      setIsCheckingSymptoms(true);
+                      const response = await api.post<any>('/symptoms/analyze', {
+                        symptomText: searchQuery,
+                        language: language
+                      });
+
+                      if (response.status === 'success' && response.data) {
+                        // Transform AI response to match the results format
+                        const aiData = response.data;
+                        setResults({
+                          symptoms: [{
+                            _id: 'custom',
+                            name: aiData.symptomName || searchQuery,
+                            category: 'custom',
+                            severity: 'unknown',
+                            description: aiData.description || ''
+                          }],
+                          suggestions: {
+                            medicines: aiData.suggestedMedicines.map((m: any) => ({
+                              medicine: {
+                                _id: 'custom',
+                                name: m.name,
+                                description: m.notes
+                              },
+                              dosage: m.dosage,
+                              notes: m.notes
+                            })),
+                            homeRemedies: aiData.homeRemedies || [],
+                            warnings: aiData.whenToSeeDoctor || []
+                          }
+                        });
+                        setShowResults(true);
+                      }
+                    } catch (error) {
+                      console.error('Error analyzing symptom:', error);
+                      toast.error('Failed to analyze symptom. Please try again.');
+                    } finally {
+                      setIsCheckingSymptoms(false);
+                    }
+                  }}
+                  disabled={!searchQuery.trim() || isCheckingSymptoms}
+                  className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md"
+                >
+                  {isCheckingSymptoms ? (
+                    <>
+                      <Loader2 className="mr-2 w-5 h-5 animate-spin" />
+                      Analyzing with AI...
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="mr-2 w-5 h-5" />
+                      {t("symptoms.analyzeWithAI", { defaultValue: "Analyze with AI" })}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </>
         )}
 
