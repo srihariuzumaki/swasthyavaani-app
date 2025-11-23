@@ -39,7 +39,7 @@ export const translateTextArray = async (textArray, targetLanguage = 'en') => {
 
     try {
         const ai = getGeminiAI();
-        const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = ai.getGenerativeModel({ model: 'gemini-pro' });
 
         const prompt = `Translate the following text items to ${targetLang}. Return ONLY a JSON array with the translations in the same order.
 
@@ -78,7 +78,7 @@ IMPORTANT: Return ONLY the JSON array, no markdown formatting, no explanations.`
 export const analyzeSymptomWithAI = async (symptomText, language = 'en') => {
     try {
         const ai = getGeminiAI();
-        const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = ai.getGenerativeModel({ model: 'gemini-pro' });
 
         const languageNames = {
             en: 'English',
