@@ -15,6 +15,61 @@ const getGeminiAI = () => {
 };
 
 /**
+ * Translate text array using Gemini AI
+ * @param {string[]} textArray - Array of text to translate
+ * @param {string} targetLanguage - Target language code
+ * @returns {Promise<string[]>} - Translated text array
+ */
+export const translateTextArray = async (textArray, targetLanguage = 'en') => {
+    if (!textArray || textArray.length === 0) return [];
+    if (targetLanguage === 'en') return textArray; // No translation needed for English
+
+    const languageNames = {
+        en: 'English',
+        hi: 'Hindi',
+        ta: 'Tamil',
+        te: 'Telugu',
+        bn: 'Bengali',
+        mr: 'Marathi',
+        gu: 'Gujarati',
+        kn: 'Kannada'
+    };
+
+    const targetLang = languageNames[targetLanguage] || 'English';
+
+    try {
+        const ai = getGeminiAI();
+        const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+        const prompt = `Translate the following text items to ${targetLang}. Return ONLY a JSON array with the translations in the same order.
+
+Text to translate:
+${JSON.stringify(textArray)}
+
+Return format: ["translation 1", "translation 2", ...]
+
+IMPORTANT: Return ONLY the JSON array, no markdown formatting, no explanations.`;
+
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        let text = response.text().trim();
+
+        // Remove markdown code blocks if present
+        if (text.startsWith('```json')) {
+            text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+        } else if (text.startsWith('```')) {
+            text = text.replace(/```\n?/g, '');
+        }
+
+        const translated = JSON.parse(text);
+        return Array.isArray(translated) ? translated : textArray;
+    } catch (error) {
+        console.error('Translation error:', error);
+        return textArray; // Return original if translation fails
+    }
+};
+
+/**
  * Analyze custom symptom using Gemini AI
  * @param {string} symptomText - User's symptom description
  * @param {string} language - Target language for response

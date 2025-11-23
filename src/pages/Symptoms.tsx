@@ -138,7 +138,8 @@ const Symptoms = () => {
     try {
       setIsCheckingSymptoms(true);
       const response = await api.post<SymptomCheckResult>('/symptoms/check', {
-        symptoms: selectedSymptomIds
+        symptoms: selectedSymptomIds,
+        language: language
       });
 
       if (response.status === 'success' && response.data) {
