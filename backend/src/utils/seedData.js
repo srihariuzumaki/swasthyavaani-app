@@ -187,8 +187,10 @@ export const seedSymptoms = async () => {
     }
 };
 
+import { seedSymptoms as seedSymptomsWithTranslations } from './seedSymptoms.js';
+
 export const seedAll = async () => {
     await seedMedicines();
-    await seedSymptoms();
+    await seedSymptomsWithTranslations(); // Use the new seeder with translations
     console.log('All data seeded successfully');
 };
