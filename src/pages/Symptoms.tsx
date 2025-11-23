@@ -205,7 +205,9 @@ const Symptoms = () => {
           } else if (matchedSymptom) {
             toast.info(`${getSymptomName(matchedSymptom)} is already selected`);
           } else {
-            toast.info(`Could not match "${transcribedText}" with symptoms. Please select manually.`);
+            // No match found - use as custom symptom
+            setSearchQuery(transcribedText);
+            toast.success(t("symptoms.voiceCaptured", { defaultValue: "Voice input captured. You can now analyze this symptom." }));
           }
         } else {
           setIsProcessingVoice(false);
