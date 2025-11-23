@@ -4,11 +4,10 @@ Your personal, multilingual health companion. Swasthya Vaani helps you check sym
 
 ## ✨ Current Features (Completed)
 
-### 🤖 AI Health Assistant
-- Chat with AI about medicines, symptoms, and health advice
-- Text-to-speech responses for accessibility
-- Multilingual support (8 Indian languages)
-- Context-aware conversations
+### 🤖 AI Health Assistant (Not Implemented)
+- **Note:** Backend integration pending
+- UI placeholder exists
+- Planned for future development
 
 ### 📸 Medicine Scanner (NEW!)
 - **OCR-powered label scanning** using Gemini Vision API
@@ -30,11 +29,10 @@ Your personal, multilingual health companion. Swasthya Vaani helps you check sym
 - Shows sample medicine suggestions
 - Planned for future development
 
-### ⏰ Medication Reminders
-- Create daily/weekly medicine reminders
-- Mark doses as complete
-- Review completed reminder history
-- Push notifications (mobile app)
+### ⏰ Medication Reminders (Not Implemented)
+- **Note:** Backend integration pending
+- UI placeholder exists
+- Planned for future development
 
 ### 💊 Medicine Database
 - Comprehensive medicine search
@@ -256,29 +254,29 @@ See `BUILD_APK.md` for detailed Android build instructions.
 
 ## 📊 Project Status
 
-### ✅ Completed Features (90%)
+### ✅ Completed Features (70%)
 
 - [x] User authentication & authorization
 - [x] Medicine database with 100+ medicines
-- [x] Medication reminders
-- [x] AI health assistant
-- [x] Multilingual support (8 languages)
 - [x] **Medicine label OCR scanning**
 - [x] **Pattern-based data extraction**
 - [x] **Fuzzy matching for error correction**
 - [x] **Confidence scoring system**
+- [x] Multilingual support (8 languages)
 - [x] Dark mode
 - [x] Mobile app (Android/iOS)
-- [x] Voice output
 - [x] Camera integration
 - [x] Backend deployment (Vercel)
 
-### 🚧 Remaining Features (10%)
+### 🚧 Remaining Features (30%)
 
-#### Core Features
+#### Core Features (High Priority)
+- [ ] **AI Health Assistant** - Backend integration for AI chat
+- [ ] **Medication Reminders** - Backend integration for reminders
 - [ ] **Symptom Checker** - Backend integration for symptom analysis
 - [ ] **Expiry Date Display** - Show expiry date in medicine details UI
 - [ ] **OCR Results UI** - Display extracted fields from scanned labels
+- [ ] **Voice Output** - Text-to-speech implementation
 
 #### Future Enhancements (Optional)
 - [ ] Push notifications for reminders (web)
