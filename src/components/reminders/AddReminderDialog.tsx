@@ -83,11 +83,17 @@ const AddReminderDialog = ({ open, onOpenChange, onSuccess }: AddReminderDialogP
                 notificationIds
             };
 
-            await api.post('/reminders', payload);
+            const response = await api.post<{ reminder: any }>('/reminders', payload);
 
-            toast.success(t("reminders.createdSuccess", { defaultValue: "Reminder created successfully" }));
-            onSuccess();
-            onOpenChange(false);
+            if (response.status === 'success' && response.data?.reminder) {
+                // Schedule local notification
+                const { notificationService } = await import('@/lib/notificationService');
+                await notificationService.scheduleReminder(response.data.reminder);
+
+                toast.success(t("reminders.createdSuccess", { defaultValue: "Reminder created successfully" }));
+                onSuccess();
+                onOpenChange(false);
+            }
 
             // Reset form
             setFormData({

@@ -49,6 +49,14 @@ const Reminders = () => {
       const response = await api.get<{ reminders: Reminder[] }>('/reminders');
       if (response.status === 'success' && response.data) {
         setReminders(response.data.reminders);
+
+        // Reschedule all active reminders to ensure notifications are set
+        const { notificationService } = await import('@/lib/notificationService');
+        response.data.reminders.forEach(reminder => {
+          if (reminder.isActive) {
+            notificationService.scheduleReminder(reminder);
+          }
+        });
       }
     } catch (error) {
       console.error('Error fetching reminders:', error);
