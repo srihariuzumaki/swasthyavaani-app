@@ -106,61 +106,93 @@ export const notificationService = {
     async initListeners() {
         await LocalNotifications.addListener('localNotificationReceived', async (notification) => {
             console.log('Notification received:', notification);
-            if (notification.extra?.medicineName) {
-                const { voiceService } = await import('./voiceService');
-                const { resources } = await import('../i18n/config');
+            try {
+                if (notification.extra?.medicineName) {
+                    const { voiceService } = await import('./voiceService');
+                    const config = await import('../i18n/config');
+                    const resources = config.resources;
 
-                // Get language from localStorage
-                const lang = localStorage.getItem('app_language') || 'en';
-                console.log('TTS Language:', lang);
+                    // Get language from localStorage
+                    const lang = localStorage.getItem('app_language') || 'en';
+                    console.log('TTS Language:', lang);
 
-                // Manual translation lookup to avoid i18n initialization issues
-                // @ts-ignore
-                const translation = resources[lang]?.translation?.reminders?.ttsMessage || resources['en'].translation.reminders.ttsMessage;
+                    let text = '';
+                    try {
+                        // Manual translation lookup
+                        // @ts-ignore
+                        const translation = resources?.[lang]?.translation?.reminders?.ttsMessage || resources?.['en']?.translation?.reminders?.ttsMessage;
 
-                const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
+                        if (translation) {
+                            const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
+                            text = translation
+                                .replace('{{medicineName}}', notification.extra.medicineName)
+                                .replace('{{dosage}}', notification.extra.dosage || '')
+                                .replace('{{instruction}}', instruction);
+                        }
+                    } catch (err) {
+                        console.error('Translation lookup failed:', err);
+                    }
 
-                // Manual interpolation
-                const text = translation
-                    .replace('{{medicineName}}', notification.extra.medicineName)
-                    .replace('{{dosage}}', notification.extra.dosage || '')
-                    .replace('{{instruction}}', instruction);
+                    // Fallback if translation failed
+                    if (!text) {
+                        const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
+                        text = `Time to take ${notification.extra.medicineName}. ${notification.extra.dosage || ''} ${instruction}`;
+                    }
 
-                console.log('TTS Text (Manual):', text);
+                    console.log('TTS Text (Final):', text);
 
-                // Use a slight delay to ensure audio focus
-                setTimeout(() => {
-                    voiceService.textToSpeech(text, lang);
-                }, 1000);
+                    // Use a slight delay to ensure audio focus
+                    setTimeout(() => {
+                        voiceService.textToSpeech(text, lang);
+                    }, 1000);
+                }
+            } catch (error) {
+                console.error('Error in notification listener:', error);
             }
         });
 
         await LocalNotifications.addListener('localNotificationActionPerformed', async (notificationAction) => {
             console.log('Notification action performed:', notificationAction);
-            const notification = notificationAction.notification;
-            if (notification.extra?.medicineName) {
-                const { voiceService } = await import('./voiceService');
-                const { resources } = await import('../i18n/config');
+            try {
+                const notification = notificationAction.notification;
+                if (notification.extra?.medicineName) {
+                    const { voiceService } = await import('./voiceService');
+                    const config = await import('../i18n/config');
+                    const resources = config.resources;
 
-                // Get language from localStorage
-                const lang = localStorage.getItem('app_language') || 'en';
-                console.log('TTS Language (Action):', lang);
+                    // Get language from localStorage
+                    const lang = localStorage.getItem('app_language') || 'en';
+                    console.log('TTS Language (Action):', lang);
 
-                // Manual translation lookup
-                // @ts-ignore
-                const translation = resources[lang]?.translation?.reminders?.ttsMessage || resources['en'].translation.reminders.ttsMessage;
+                    let text = '';
+                    try {
+                        // Manual translation lookup
+                        // @ts-ignore
+                        const translation = resources?.[lang]?.translation?.reminders?.ttsMessage || resources?.['en']?.translation?.reminders?.ttsMessage;
 
-                const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
+                        if (translation) {
+                            const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
+                            text = translation
+                                .replace('{{medicineName}}', notification.extra.medicineName)
+                                .replace('{{dosage}}', notification.extra.dosage || '')
+                                .replace('{{instruction}}', instruction);
+                        }
+                    } catch (err) {
+                        console.error('Translation lookup failed:', err);
+                    }
 
-                // Manual interpolation
-                const text = translation
-                    .replace('{{medicineName}}', notification.extra.medicineName)
-                    .replace('{{dosage}}', notification.extra.dosage || '')
-                    .replace('{{instruction}}', instruction);
+                    // Fallback if translation failed
+                    if (!text) {
+                        const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
+                        text = `Time to take ${notification.extra.medicineName}. ${notification.extra.dosage || ''} ${instruction}`;
+                    }
 
-                console.log('TTS Text (Action Manual):', text);
+                    console.log('TTS Text (Action Final):', text);
 
-                voiceService.textToSpeech(text, lang);
+                    voiceService.textToSpeech(text, lang);
+                }
+            } catch (error) {
+                console.error('Error in notification action listener:', error);
             }
         });
     }
