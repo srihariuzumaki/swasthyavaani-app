@@ -4,10 +4,71 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { X, ChevronRight, AlertCircle, Mic, Loader2, Search } from "lucide-react";
+import {
+  X,
+  ChevronRight,
+  AlertCircle,
+  Mic,
+  Loader2,
+  Search,
+  Volume2,
+  VolumeX
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import api from "@/lib/api";
+import voiceService from "@/lib/voiceService";
+
+// Voice constants (shared with MedicineDetail)
+const DEFAULT_VOICE_BY_LANGUAGE: Record<string, string> = {
+  "en": "anushka",
+  "en-IN": "anushka",
+  "hi": "manisha",
+  "hi-IN": "manisha",
+  "bn": "vidya",
+  "bn-IN": "vidya",
+  "ta": "arya",
+  "ta-IN": "arya",
+  "te": "abhilash",
+  "te-IN": "abhilash",
+  "kn": "karun",
+  "kn-IN": "karun",
+  "ml": "hitesh",
+  "ml-IN": "hitesh",
+  "mr": "manisha",
+  "mr-IN": "manisha",
+  "gu": "vidya",
+  "gu-IN": "vidya",
+  "pa": "abhilash",
+  "pa-IN": "abhilash",
+  "od": "arya",
+  "od-IN": "arya",
+};
+
+const SPEAKER_OPTIONS = [
+  { value: "anushka", label: "Anushka · Female" },
+  { value: "manisha", label: "Manisha · Female" },
+  { value: "vidya", label: "Vidya · Female" },
+  { value: "arya", label: "Arya · Female" },
+  { value: "abhilash", label: "Abhilash · Male" },
+  { value: "karun", label: "Karun · Male" },
+  { value: "hitesh", label: "Hitesh · Male" },
+];
+
+const getDefaultVoice = (lang: string) => DEFAULT_VOICE_BY_LANGUAGE[lang] || "anushka";
+
+const getStoredVoice = (lang: string) => {
+  if (typeof window === "undefined") return getDefaultVoice(lang);
+  const stored = localStorage.getItem(`voice_preference_${lang}`);
+  return stored || getDefaultVoice(lang);
+};
 
 interface Symptom {
   _id: string;
@@ -60,10 +121,27 @@ const Symptoms = () => {
   const [results, setResults] = useState<SymptomCheckResult | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredSymptoms, setFilteredSymptoms] = useState<Symptom[]>([]);
+  
+  // Voice state
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingSection, setSpeakingSection] = useState<string | null>(null);
+  const [selectedVoice, setSelectedVoice] = useState<string>(() => getStoredVoice(language));
 
   // Fetch symptoms on mount
   useEffect(() => {
     fetchSymptoms();
+  }, []);
+
+  // Update voice when language changes
+  useEffect(() => {
+    setSelectedVoice(getStoredVoice(language));
+  }, [language]);
+
+  // Cleanup voice on unmount
+  useEffect(() => {
+    return () => {
+      voiceService.stopSpeaking();
+    };
   }, []);
 
   // Filter symptoms based on search query
@@ -159,6 +237,39 @@ const Symptoms = () => {
     setShowResults(false);
     setResults(null);
     setSearchQuery("");
+    voiceService.stopSpeaking();
+    setSpeakingSection(null);
+  };
+
+  // Voice handlers
+  const handleVoiceChange = (value: string) => {
+    setSelectedVoice(value);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`voice_preference_${language}`, value);
+    }
+  };
+
+  const handleSectionVoice = async (section: string, text: string) => {
+    // Stop any currently playing audio
+    if (speakingSection) {
+      voiceService.stopSpeaking();
+      setSpeakingSection(null);
+      if (speakingSection === section) {
+        return; // If clicking the same section, just stop
+      }
+    }
+
+    setSpeakingSection(section);
+    setIsSpeaking(true);
+
+    try {
+      await voiceService.textToSpeech(text, language, selectedVoice);
+    } catch (error) {
+      console.error('Section voice error:', error);
+    } finally {
+      setSpeakingSection(null);
+      setIsSpeaking(false);
+    }
   };
 
   // Enhanced voice input handler with multilingual matching
@@ -169,7 +280,6 @@ const Symptoms = () => {
         setIsVoiceRecording(false);
         setIsProcessingVoice(true);
 
-        const voiceService = (await import('@/lib/voiceService')).default;
         const audioBlob = await voiceService.stopRecording();
 
         // Convert speech to text
@@ -216,7 +326,6 @@ const Symptoms = () => {
       } else {
         // Start recording
         setIsVoiceRecording(true);
-        const voiceService = (await import('@/lib/voiceService')).default;
         await voiceService.startRecording();
         toast.info("Listening... Speak a symptom name");
       }
@@ -455,6 +564,24 @@ const Symptoms = () => {
         {/* Results */}
         {showResults && results && (
           <div className="animate-fade-in">
+            {/* Voice Selection */}
+            <div className="flex justify-end mb-4">
+              <div className="w-40">
+                <Select value={selectedVoice} onValueChange={handleVoiceChange}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Select voice" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SPEAKER_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="flex items-center gap-2 mb-4 p-3 bg-accent/10 rounded-lg">
               <AlertCircle className="w-5 h-5 text-accent" />
               <p className="text-sm text-muted-foreground">
@@ -465,7 +592,26 @@ const Symptoms = () => {
             {/* Suggested Medicines */}
             {results.suggestions.medicines.length > 0 && (
               <>
-                <h2 className="text-lg font-semibold mb-4">{t("symptoms.suggestedMedicines", { defaultValue: "Suggested Medicines" })}</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">{t("symptoms.suggestedMedicines", { defaultValue: "Suggested Medicines" })}</h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const text = results.suggestions.medicines.map(m => 
+                        `${m.medicine.name}. ${m.medicine.genericName ? `Generic name: ${m.medicine.genericName}.` : ''} Dosage: ${m.dosage}. ${m.notes ? `Note: ${m.notes}` : ''}`
+                      ).join('. ');
+                      handleSectionVoice('medicines', text);
+                    }}
+                    className="shrink-0"
+                  >
+                    {speakingSection === 'medicines' ? (
+                      <VolumeX className="w-4 h-4 text-primary" />
+                    ) : (
+                      <Volume2 className="w-4 h-4 text-primary" />
+                    )}
+                  </Button>
+                </div>
 
                 <div className="space-y-3 mb-6">
                   {results.suggestions.medicines.map((suggestion, index) => (
@@ -494,7 +640,24 @@ const Symptoms = () => {
             {/* Home Remedies */}
             {results.suggestions.homeRemedies.length > 0 && (
               <>
-                <h2 className="text-lg font-semibold mb-4">{t("symptoms.homeRemedies", { defaultValue: "Home Remedies" })}</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">{t("symptoms.homeRemedies", { defaultValue: "Home Remedies" })}</h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const text = results.suggestions.homeRemedies.join('. ');
+                      handleSectionVoice('remedies', text);
+                    }}
+                    className="shrink-0"
+                  >
+                    {speakingSection === 'remedies' ? (
+                      <VolumeX className="w-4 h-4 text-primary" />
+                    ) : (
+                      <Volume2 className="w-4 h-4 text-primary" />
+                    )}
+                  </Button>
+                </div>
                 <Card className="p-4 mb-6">
                   <ul className="space-y-2">
                     {results.suggestions.homeRemedies.map((remedy, index) => (
@@ -511,7 +674,24 @@ const Symptoms = () => {
             {/* Warnings */}
             {results.suggestions.warnings.length > 0 && (
               <>
-                <h2 className="text-lg font-semibold mb-4 text-red-600">{t("symptoms.whenToSeeDoctor", { defaultValue: "When to See a Doctor" })}</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-red-600">{t("symptoms.whenToSeeDoctor", { defaultValue: "When to See a Doctor" })}</h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const text = results.suggestions.warnings.join('. ');
+                      handleSectionVoice('warnings', text);
+                    }}
+                    className="shrink-0"
+                  >
+                    {speakingSection === 'warnings' ? (
+                      <VolumeX className="w-4 h-4 text-red-600" />
+                    ) : (
+                      <Volume2 className="w-4 h-4 text-red-600" />
+                    )}
+                  </Button>
+                </div>
                 <Card className="p-4 mb-6 border-red-200 bg-red-50 dark:bg-red-950/20">
                   <ul className="space-y-2">
                     {results.suggestions.warnings.map((warning, index) => (
