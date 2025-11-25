@@ -12,6 +12,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import DisclaimerModal from "@/components/DisclaimerModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { healthTipsService } from '@/lib/healthTipsService';
 import { useNavigate } from "react-router-dom";
 import apiClient, { MedicineSearchResponse, MedicineData, ApiResponse } from "@/lib/api";
 
@@ -22,12 +23,7 @@ const QuickActions = ({ t }: { t: any }) => [
   { icon: TrendingUp, label: t("home.trackHealth", { defaultValue: "Track Health" }), color: "from-primary to-accent" },
 ];
 
-const HealthTips = ({ t }: { t: any }) => [
-  t("home.healthTip1", { defaultValue: "Drink 8 glasses of water daily" }),
-  t("home.healthTip2", { defaultValue: "Take medicines after meals unless prescribed otherwise" }),
-  t("home.healthTip3", { defaultValue: "Exercise for 30 minutes daily" }),
-  t("home.healthTip4", { defaultValue: "Get 7-8 hours of sleep" }),
-];
+
 
 const Home = () => {
   const { t } = useTranslation();
@@ -37,6 +33,16 @@ const Home = () => {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+
+  const [healthTips, setHealthTips] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Get 3 random tips on component mount
+    setHealthTips(healthTipsService.getRandomTips(3));
+    
+    // Schedule periodic health tip notifications
+    healthTipsService.schedulePeriodicTips();
+  }, []);
 
   // Check if disclaimer should be shown after onboarding
   useEffect(() => {
@@ -74,7 +80,7 @@ const Home = () => {
               const translationResponse = await apiClient.post('/voice/translate', {
                 text: transcribedText,
                 targetLanguage: 'en',
-              });
+              }) as any;
               searchText = translationResponse.data?.text || translationResponse?.data?.data?.text || searchText;
             } catch (translateError) {
               console.error('Translation failed:', translateError);
@@ -397,7 +403,7 @@ const Home = () => {
       <div className="px-4 mt-6">
         <h2 className="text-lg font-semibold mb-4">{t("home.healthTips", { defaultValue: "Today's Health Tips" })}</h2>
         <div className="space-y-3">
-          {HealthTips({ t }).map((tip, index) => (
+          {healthTips.map((tip, index) => (
             <Card key={index} className="p-4 flex items-center gap-3 animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
               <div className="w-2 h-2 rounded-full bg-accent" />
               <p className="text-sm text-muted-foreground">{tip}</p>

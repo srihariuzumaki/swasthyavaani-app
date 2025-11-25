@@ -19,6 +19,8 @@ interface Reminder {
   isActive: boolean;
   notificationIds?: number[];
   completedDoses: { date: string; time: string }[];
+  snoozedUntil?: string;  // ADD THIS
+  snoozeCount?: number;    // ADD THIS
 }
 
 const Reminders = () => {
@@ -210,6 +212,19 @@ const Reminders = () => {
                               <Badge variant="outline" className="text-xs">
                                 {dose.reminder.instruction.replace('_', ' ')}
                               </Badge>
+                            )}
+                            {dose.reminder.snoozedUntil && new Date(dose.reminder.snoozedUntil) > new Date() && (
+                              <div className="flex items-center gap-1 mt-2 text-xs">
+                                <Badge variant="default" className="bg-orange-500 hover:bg-orange-600 text-white">
+                                  ⏰ Snoozed
+                                </Badge>
+                                <span className="text-muted-foreground">
+                                  Next: {new Date(dose.reminder.snoozedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  (Original: {dose.time})
+                                </span>
+                              </div>
                             )}
                           </div>
                         </div>
