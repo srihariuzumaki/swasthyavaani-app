@@ -60,7 +60,25 @@ const reminderSchema = new mongoose.Schema({
         date: Date,
         time: String,
         completedAt: { type: Date, default: Date.now }
-    }]
+    }],
+    missedDoses: [{
+        date: Date,
+        time: String,
+        reason: String,
+        missedAt: { type: Date, default: Date.now }
+    }],
+    snoozedUntil: {
+        type: Date,
+        default: null
+    },
+    snoozeCount: {
+        type: Number,
+        default: 0
+    },
+    lastInteraction: {
+        type: Date,
+        default: null
+    }
 }, {
     timestamps: true,
 });

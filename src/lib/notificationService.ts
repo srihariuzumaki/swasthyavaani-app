@@ -2,13 +2,14 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { toast } from "sonner";
 
 export const notificationService = {
-    async requestPermissions() {
-        const result = await LocalNotifications.requestPermissions();
-        if (result.display === 'granted') {
-            await this.createChannel();
-        }
-        return result.display === 'granted';
-    },
+  async requestPermissions() {
+    const result = await LocalNotifications.requestPermissions();
+    if (result.display === 'granted') {
+        await this.createChannel();
+        await this.registerActionTypes(); // Add this line
+    }
+    return result.display === 'granted';
+},
 
     async createChannel() {
         await LocalNotifications.createChannel({
@@ -21,6 +22,32 @@ export const notificationService = {
             vibration: true,
         });
     },
+
+    async registerActionTypes() {
+    await LocalNotifications.registerActionTypes({
+        types: [{
+            id: 'MEDICATION_ACTIONS',
+            actions: [
+                {
+                    id: 'take',
+                    title: '✓ Take Now',
+                    foreground: false
+                },
+                {
+                    id: 'snooze',
+                    title: '⏰ Snooze 10min',
+                    foreground: false
+                },
+                {
+                    id: 'skip',
+                    title: '✕ Skip',
+                    foreground: false,
+                    destructive: true
+                }
+            ]
+        }]
+    });
+},
 
     async scheduleReminder(reminder: any) {
         // Default to true if undefined, only return if explicitly false
@@ -67,9 +94,10 @@ export const notificationService = {
                     channelId: 'medication-reminders',
                     sound: 'beep.wav',
                     attachments: [],
-                    actionTypeId: '',
+                    actionTypeId: 'MEDICATION_ACTIONS',
                     extra: {
                         reminderId: reminder._id,
+                        time: time,
                         medicineName: reminder.medicineName,
                         dosage: reminder.dosage,
                         instruction: reminder.instruction
@@ -104,96 +132,53 @@ export const notificationService = {
 
     // Initialize listeners for TTS
     async initListeners() {
-        await LocalNotifications.addListener('localNotificationReceived', async (notification) => {
-            console.log('Notification received:', notification);
-            try {
-                if (notification.extra?.medicineName) {
-                    const { voiceService } = await import('./voiceService');
-                    const config = await import('../i18n/config');
-                    const resources = config.resources;
+       await LocalNotifications.addListener('localNotificationActionPerformed', async (notificationAction) => {
+    console.log('Notification action performed:', notificationAction);
+    const { actionId, notification } = notificationAction;
+    const { reminderId, time } = notification.extra;
+    try {
+        const api = (await import('./api')).default;
+        switch (actionId) {
+            case 'take':
+                // Mark as taken
+                await api.post(`/reminders/${reminderId}/quick-complete`, { time });
+                toast.success('Marked as taken!');
+                break;
+            case 'snooze':
+                // Snooze for 10 minutes
+                await api.post(`/reminders/${reminderId}/snooze`, { 
+                    duration: 10,
+                    time 
+                });
+                toast.success('Snoozed for 10 minutes');
+                
+                // Reschedule notification for 10 minutes later
+                const snoozedTime = new Date();
+                snoozedTime.setMinutes(snoozedTime.getMinutes() + 10);
+                
+                await LocalNotifications.schedule({
+                    notifications: [{
+                        title: notification.title,
+                        body: notification.body + ' (Snoozed)',
+                        id: Math.floor(Math.random() * 1000000),
+                        schedule: { at: snoozedTime },
+                        channelId: 'medication-reminders',
+                        actionTypeId: 'MEDICATION_ACTIONS',
+                        extra: notification.extra
+                    }]
+                });
+                break;
+            case 'skip':
+                // Just dismiss, no action needed
+                console.log('Reminder skipped');
+                break;
+        }
+    } catch (error) {
+        console.error('Error handling notification action:', error);
+        toast.error('Failed to process action');
+    }
+});
 
-                    // Get language from localStorage
-                    const lang = localStorage.getItem('app_language') || 'en';
-                    console.log('TTS Language:', lang);
-
-                    let text = '';
-                    try {
-                        // Manual translation lookup
-                        // @ts-ignore
-                        const translation = resources?.[lang]?.translation?.reminders?.ttsMessage || resources?.['en']?.translation?.reminders?.ttsMessage;
-
-                        if (translation) {
-                            const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
-                            text = translation
-                                .replace('{{medicineName}}', notification.extra.medicineName)
-                                .replace('{{dosage}}', notification.extra.dosage || '')
-                                .replace('{{instruction}}', instruction);
-                        }
-                    } catch (err) {
-                        console.error('Translation lookup failed:', err);
-                    }
-
-                    // Fallback if translation failed
-                    if (!text) {
-                        const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
-                        text = `Time to take ${notification.extra.medicineName}. ${notification.extra.dosage || ''} ${instruction}`;
-                    }
-
-                    console.log('TTS Text (Final):', text);
-
-                    // Use a slight delay to ensure audio focus
-                    setTimeout(() => {
-                        voiceService.textToSpeech(text, lang);
-                    }, 1000);
-                }
-            } catch (error) {
-                console.error('Error in notification listener:', error);
-            }
-        });
-
-        await LocalNotifications.addListener('localNotificationActionPerformed', async (notificationAction) => {
-            console.log('Notification action performed:', notificationAction);
-            try {
-                const notification = notificationAction.notification;
-                if (notification.extra?.medicineName) {
-                    const { voiceService } = await import('./voiceService');
-                    const config = await import('../i18n/config');
-                    const resources = config.resources;
-
-                    // Get language from localStorage
-                    const lang = localStorage.getItem('app_language') || 'en';
-                    console.log('TTS Language (Action):', lang);
-
-                    let text = '';
-                    try {
-                        // Manual translation lookup
-                        // @ts-ignore
-                        const translation = resources?.[lang]?.translation?.reminders?.ttsMessage || resources?.['en']?.translation?.reminders?.ttsMessage;
-
-                        if (translation) {
-                            const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
-                            text = translation
-                                .replace('{{medicineName}}', notification.extra.medicineName)
-                                .replace('{{dosage}}', notification.extra.dosage || '')
-                                .replace('{{instruction}}', instruction);
-                        }
-                    } catch (err) {
-                        console.error('Translation lookup failed:', err);
-                    }
-
-                    // Fallback if translation failed
-                    if (!text) {
-                        const instruction = notification.extra.instruction ? notification.extra.instruction.replace('_', ' ') : '';
-                        text = `Time to take ${notification.extra.medicineName}. ${notification.extra.dosage || ''} ${instruction}`;
-                    }
-
-                    console.log('TTS Text (Action Final):', text);
-
-                    voiceService.textToSpeech(text, lang);
-                }
-            } catch (error) {
-                console.error('Error in notification action listener:', error);
-            }
-        });
+    
     }
 };
