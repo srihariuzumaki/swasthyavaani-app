@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,7 @@ const Home = () => {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const healthTipsRef = useRef<HTMLDivElement>(null);
 
   const [healthTips, setHealthTips] = useState<string[]>([]);
 
@@ -356,23 +357,23 @@ const Home = () => {
         </div>
       </div>
 
-      {/* AI Assistant Banner */}
+      {/* Custom Symptom Analyzer Banner */}
       <div className="px-4 mt-6">
         <Card
           className="p-6 cursor-pointer hover:shadow-[var(--shadow-card)] transition-all hover-scale bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20"
-          onClick={() => setShowAIAssistant(true)}
+          onClick={() => navigate("/symptoms")}
         >
-          <div className="flex items-center gap-4">
+          <div className="items-center flex gap-4">
             <div className="p-4 rounded-2xl bg-gradient-to-br from-primary to-secondary">
-              <Bot className="w-8 h-8 text-white" />
+              <Activity className="w-8 h-8 text-white" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-lg mb-1">{t("home.aiAssistant", { defaultValue: "Talk to AI Assistant" })}</h3>
+              <h3 className="font-semibold text-lg mb-1">{t("home.symptomAnalyzer", { defaultValue: "Custom symptom analyzer" })}</h3>
               <p className="text-sm text-muted-foreground">
                 {t("home.aiAssistantDesc", { defaultValue: "Ask about medicines, symptoms, or health advice in your language" })}
               </p>
             </div>
-            <Mic className="w-6 h-6 text-primary" />
+            <Bot className="w-6 h-6 text-primary" />
           </div>
         </Card>
       </div>
@@ -383,11 +384,24 @@ const Home = () => {
         <div className="grid grid-cols-2 gap-3">
           {QuickActions({ t }).map((action, index) => {
             const Icon = action.icon;
+            
+            const handleActionClick = () => {
+              if (action.label === t("home.symptomChecker", { defaultValue: "Symptom Checker" })) {
+                navigate("/symptoms");
+              } else if (action.label === t("home.myMedicines", { defaultValue: "My Medicines" })) {
+                navigate("/reminders");
+              } else if (action.label === t("home.healthTips", { defaultValue: "Health Tips" })) {
+                healthTipsRef.current?.scrollIntoView({ behavior: "smooth" });
+              } else {
+                toast.info(`${action.label} coming soon!`);
+              }
+            };
+
             return (
               <Card
                 key={index}
                 className="p-4 flex flex-col items-center gap-3 cursor-pointer hover:shadow-[var(--shadow-card)] transition-all hover-scale"
-                onClick={() => toast.info(`${action.label} coming soon!`)}
+                onClick={handleActionClick}
               >
                 <div className={`p-3 rounded-2xl bg-gradient-to-br ${action.color}`}>
                   <Icon className="w-6 h-6 text-white" />
@@ -400,7 +414,7 @@ const Home = () => {
       </div>
 
       {/* Health Tips */}
-      <div className="px-4 mt-6">
+      <div className="px-4 mt-6" ref={healthTipsRef}>
         <h2 className="text-lg font-semibold mb-4">{t("home.healthTips", { defaultValue: "Today's Health Tips" })}</h2>
         <div className="space-y-3">
           {healthTips.map((tip, index) => (
