@@ -15,6 +15,17 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { healthTipsService } from '@/lib/healthTipsService';
 import { useNavigate } from "react-router-dom";
 import apiClient, { MedicineSearchResponse, MedicineData, ApiResponse } from "@/lib/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const QuickActions = ({ t }: { t: any }) => [
   { icon: Activity, label: t("home.symptomChecker", { defaultValue: "Symptom Checker" }), color: "from-primary to-secondary" },
@@ -40,7 +51,7 @@ const Home = () => {
   useEffect(() => {
     // Get 3 random tips on component mount
     setHealthTips(healthTipsService.getRandomTips(3));
-    
+
     // Schedule periodic health tip notifications
     healthTipsService.schedulePeriodicTips();
   }, []);
@@ -49,7 +60,7 @@ const Home = () => {
   useEffect(() => {
     const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
     const hasAgreedToDisclaimer = localStorage.getItem("hasAgreedToDisclaimer");
-    
+
     // Show disclaimer if user just completed onboarding but hasn't agreed yet
     if (hasSeenOnboarding === "true" && !hasAgreedToDisclaimer) {
       setShowDisclaimer(true);
@@ -65,13 +76,13 @@ const Home = () => {
         // Stop recording
         setIsVoiceRecording(false);
         setIsProcessingVoice(true);
-        
+
         const voiceService = (await import('@/lib/voiceService')).default;
         const audioBlob = await voiceService.stopRecording();
-        
+
         // Convert speech to text
         const transcribedText = await voiceService.speechToText(audioBlob, language);
-        
+
         if (transcribedText) {
           setSearchQuery(transcribedText);
 
@@ -127,11 +138,11 @@ const Home = () => {
         try {
           const response: any = await apiClient.get(`/medicines/suggestions?query=${encodeURIComponent(searchQuery)}`);
           console.log('Suggestions response:', response);
-          
+
           // Handle ApiResponse wrapper
           const suggestionsList = response.data?.suggestions || response.data?.data?.suggestions || [];
           console.log('Suggestions list:', suggestionsList);
-          
+
           if (suggestionsList.length > 0) {
             setSuggestions(suggestionsList);
             setShowSuggestions(true);
@@ -158,19 +169,19 @@ const Home = () => {
     if (!queryInput.trim()) return;
     setShowSuggestions(false);
     setSearchResults([]); // Clear previous results
-    
+
     setIsSearching(true);
     setShowResults(true);
-    
+
     try {
-      const response = await apiClient.searchMedicines({ 
+      const response = await apiClient.searchMedicines({
         search: queryInput.trim(),
         lang: language
       }) as ApiResponse<MedicineSearchResponse>;
-      
+
       if (response.status === 'success') {
         setSearchResults(response.data?.medicines || []);
-        
+
         // Store search in user history
         try {
           await apiClient.post('/users/search-history', {
@@ -211,14 +222,34 @@ const Home = () => {
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={handleLogout}
-              className="text-white hover:bg-white/20 rounded-full"
-            >
-              <LogOut className="w-5 h-5" />
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="text-white hover:bg-white/20 rounded-full"
+                >
+                  <LogOut className="w-5 h-5" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t("common.logOut", { defaultValue: "Log Out" })}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to log out of your account?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>{t("common.cancel", { defaultValue: "Cancel" })}</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleLogout}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {t("common.logOut", { defaultValue: "Log Out" })}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
 
@@ -244,7 +275,7 @@ const Home = () => {
             className="pl-12 pr-24 py-6 bg-white/95 backdrop-blur border-0 shadow-lg text-foreground placeholder:text-muted-foreground"
           />
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          
+
           {/* Suggestions dropdown - only show when not showing results */}
           {showSuggestions && suggestions.length > 0 && !showResults && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-20 max-h-[300px] overflow-auto">
@@ -266,16 +297,15 @@ const Home = () => {
               </div>
             </div>
           )}
-          
+
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
             <Button
               size="icon"
               variant="ghost"
               onClick={handleVoiceSearch}
               disabled={isProcessingVoice}
-              className={`rounded-full hover:bg-primary/10 ${
-                isVoiceRecording ? 'bg-red-500/20 animate-pulse' : ''
-              }`}
+              className={`rounded-full hover:bg-primary/10 ${isVoiceRecording ? 'bg-red-500/20 animate-pulse' : ''
+                }`}
             >
               {isVoiceRecording ? (
                 <Mic className="w-5 h-5 text-red-500" />
@@ -294,22 +324,22 @@ const Home = () => {
               <Camera className="w-5 h-5 text-primary" />
             </Button>
           </div>
-          
+
           {/* Search Results */}
           {showResults && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-30 max-h-[400px] overflow-auto">
               <div className="flex justify-between items-center p-3 border-b">
                 <h3 className="font-medium">{t("common.searchResults", { defaultValue: "Search Results" })}</h3>
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
+                <Button
+                  size="icon"
+                  variant="ghost"
                   onClick={() => setShowResults(false)}
                   className="h-8 w-8 rounded-full"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               {isSearching ? (
                 <div className="flex justify-center items-center p-8">
                   <LogoLoader size="md" />
@@ -317,8 +347,8 @@ const Home = () => {
               ) : searchResults.length > 0 ? (
                 <div className="divide-y">
                   {searchResults.map((medicine) => (
-                    <div 
-                      key={medicine._id} 
+                    <div
+                      key={medicine._id}
                       className="p-3 hover:bg-muted/50 cursor-pointer"
                       onClick={() => navigate(`/medicines/${medicine._id}`)}
                     >
@@ -384,7 +414,7 @@ const Home = () => {
         <div className="grid grid-cols-2 gap-3">
           {QuickActions({ t }).map((action, index) => {
             const Icon = action.icon;
-            
+
             const handleActionClick = () => {
               if (action.label === t("home.symptomChecker", { defaultValue: "Symptom Checker" })) {
                 navigate("/symptoms");

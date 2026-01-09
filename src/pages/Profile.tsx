@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -9,13 +9,49 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import LanguageSelector from "@/components/LanguageSelector";
+import { useTheme } from "@/contexts/ThemeContext";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Profile = () => {
   const { t } = useTranslation();
   const { logout, user } = useAuth();
   const { language, supportedLanguages } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
+
+  // Profile preferences state with localStorage persistence
+  const [prefs, setPrefs] = useState({
+    medicationReminders: localStorage.getItem("pref_reminders") !== "false",
+    healthTips: localStorage.getItem("pref_health_tips") !== "false",
+    largeText: localStorage.getItem("pref_large_text") === "true",
+    highContrast: localStorage.getItem("pref_high_contrast") === "true",
+  });
+
+  const handleToggle = (key: keyof typeof prefs) => {
+    const newVal = !prefs[key];
+    setPrefs(prev => ({ ...prev, [key]: newVal }));
+    localStorage.setItem(`pref_${key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)}`, String(newVal));
+
+    if (key === 'largeText' || key === 'highContrast') {
+      const root = window.document.documentElement;
+      if (newVal) {
+        root.classList.add(`mode-${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`);
+      } else {
+        root.classList.remove(`mode-${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`);
+      }
+    }
+  };
 
   const currentLanguage = supportedLanguages.find(l => l.code === language) || supportedLanguages[0];
 
@@ -106,14 +142,20 @@ const Profile = () => {
                 <p className="font-medium">{t("profile.medicationReminders", { defaultValue: "Medication Reminders" })}</p>
                 <p className="text-sm text-muted-foreground">{t("profile.getNotified", { defaultValue: "Get notified for your doses" })}</p>
               </div>
-              <Switch defaultChecked />
+              <Switch
+                checked={prefs.medicationReminders}
+                onCheckedChange={() => handleToggle('medicationReminders')}
+              />
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">{t("profile.healthTips", { defaultValue: "Health Tips" })}</p>
                 <p className="text-sm text-muted-foreground">{t("profile.dailyAdvice", { defaultValue: "Daily wellness advice" })}</p>
               </div>
-              <Switch defaultChecked />
+              <Switch
+                checked={prefs.healthTips}
+                onCheckedChange={() => handleToggle('healthTips')}
+              />
             </div>
           </div>
         </Card>
@@ -149,7 +191,10 @@ const Profile = () => {
                   <p className="text-sm text-muted-foreground">{t("profile.easierOnEyes", { defaultValue: "Easier on the eyes" })}</p>
                 </div>
               </div>
-              <Switch />
+              <Switch
+                checked={theme === "dark"}
+                onCheckedChange={toggleTheme}
+              />
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -159,7 +204,10 @@ const Profile = () => {
                   <p className="text-sm text-muted-foreground">{t("profile.increaseFontSize", { defaultValue: "Increase font size" })}</p>
                 </div>
               </div>
-              <Switch />
+              <Switch
+                checked={prefs.largeText}
+                onCheckedChange={() => handleToggle('largeText')}
+              />
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -169,19 +217,42 @@ const Profile = () => {
                   <p className="text-sm text-muted-foreground">{t("profile.betterVisibility", { defaultValue: "Better visibility" })}</p>
                 </div>
               </div>
-              <Switch />
+              <Switch
+                checked={prefs.highContrast}
+                onCheckedChange={() => handleToggle('highContrast')}
+              />
             </div>
           </div>
         </Card>
 
         {/* Logout */}
-        <Button
-          variant="outline"
-          className="w-full text-destructive hover:bg-destructive/10"
-          onClick={handleLogout}
-        >
-          {t("common.logOut", { defaultValue: "Log Out" })}
-        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full text-destructive hover:bg-destructive/10"
+            >
+              {t("common.logOut", { defaultValue: "Log Out" })}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t("common.logOut", { defaultValue: "Log Out" })}</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to log out of your account?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t("common.cancel", { defaultValue: "Cancel" })}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleLogout}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {t("common.logOut", { defaultValue: "Log Out" })}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       <LanguageSelector open={showLanguageSelector} onOpenChange={setShowLanguageSelector} />

@@ -27,7 +27,7 @@ All colors MUST be HSL.
     --secondary: 280 70% 65%;
     --secondary-foreground: 0 0% 100%;
     --secondary-light: 280 60% 80%;
-    
+
     /* Healthcare Teal - Healing & Wellness */
     --accent: 174 62% 47%;
     --accent-foreground: 0 0% 100%;
@@ -49,11 +49,11 @@ All colors MUST be HSL.
     --gradient-primary: linear-gradient(135deg, hsl(239 84% 67%) 0%, hsl(280 70% 65%) 100%);
     --gradient-accent: linear-gradient(135deg, hsl(174 62% 47%) 0%, hsl(239 84% 67%) 100%);
     --gradient-subtle: linear-gradient(180deg, hsl(220 20% 98%) 0%, hsl(220 14% 96%) 100%);
-    
+
     /* Shadows */
     --shadow-medical: 0 4px 20px hsl(239 84% 67% / 0.15);
     --shadow-card: 0 2px 8px hsl(230 15% 15% / 0.08);
-    
+
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -90,7 +90,7 @@ All colors MUST be HSL.
     --border: 230 15% 24%;
     --input: 230 15% 24%;
     --ring: 239 84% 67%;
-    
+
     --shadow-medical: 0 4px 20px hsl(239 84% 67% / 0.25);
     --shadow-card: 0 2px 8px hsl(0 0% 0% / 0.3);
   }
@@ -98,26 +98,36 @@ All colors MUST be HSL.
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
 
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 }
 
 @layer utilities {
   .hover-scale {
-    @apply transition-transform duration-200 hover:scale-105;
+    transition-property: transform;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+
+  .hover-scale:hover {
+    transform: scale(1.05);
   }
 }
 
 /* Logo Loader Animations */
 @keyframes scale-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
+
   50% {
     transform: scale(1.05);
     opacity: 0.95;
@@ -125,10 +135,55 @@ All colors MUST be HSL.
 }
 
 @keyframes gradient-shift {
-  0%, 100% {
+
+  0%,
+  100% {
     stop-color: #3B82F6;
   }
+
   50% {
     stop-color: #10B981;
   }
+}
+
+/* Accessibility Modes */
+.mode-large-text {
+  font-size: 1.15rem;
+}
+
+.mode-large-text h1 {
+  font-size: 1.875rem;
+}
+
+.mode-large-text h2 {
+  font-size: 1.5rem;
+}
+
+.mode-large-text h3 {
+  font-size: 1.25rem;
+}
+
+.mode-large-text p {
+  font-size: 1rem;
+}
+
+.mode-high-contrast {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  --primary: 240 100% 25%;
+  --border: 0 0% 0%;
+  --ring: 240 100% 25%;
+}
+
+.dark .mode-high-contrast {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --card: 0 0% 0%;
+  --card-foreground: 0 0% 100%;
+  --primary: 60 100% 50%;
+  /* High contrast yellow or bright cyan */
+  --border: 0 0% 100%;
+  --ring: 60 100% 50%;
 }
