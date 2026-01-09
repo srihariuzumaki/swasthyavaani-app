@@ -36,7 +36,8 @@
     "healthTip2": "ડોક્ટરે સૂચવ્યું ન હોય તો ખાવા પછી દવાઓ લો",
     "healthTip3": "રોજ 30 મિનિટ વ્યાયામ કરો",
     "healthTip4": "7-8 કલાકની ઊંઘ લો",
-    "symptomChecker": "લક્ષણ ચેકર",
+    "symptomChecker": "લક્ષણ તપાસનાર",
+    "symptomAnalyzer": "કસ્ટમ લક્ષણ વિશ્લેષક",
     "myMedicines": "મારી દવાઓ",
     "trackHealth": "આરોગ્ય ટ્રેક કરો"
   },
@@ -102,8 +103,10 @@
     "nausea": "વમન",
     "dizziness": "ચક્કર આવવું",
     "fatigue": "થાક",
-    "soreThroat": "ગળામાં દુખવું",
-    "chestPain": "છાતી દુખવું"
+    "soreThroat": "ગળામાં દુખાવો",
+    "chestPain": "છાતીમાં દુખાવો",
+    "homeRemedies": "ઘરગથ્થુ ઉપચાર",
+    "whenToSeeDoctor": "ક્યારે ડોક્ટરને મળવું"
   },
   "reminders": {
     "title": "દવા રીમાઇન્ડર",

@@ -36,8 +36,9 @@
     "healthTip2": "যদি না নির্দিষ্ট করা থাকে তবে খাবারের পর ওষুধ নিন",
     "healthTip3": "প্রতিদিন 30 মিনিট ব্যায়াম করুন",
     "healthTip4": "7-8 ঘন্টা ঘুমান",
-    "symptomChecker": "লক্ষণ পরীক্ষক",
-    "myMedicines": "আমার ওষুধ",
+    "symptomChecker": "লক্ষণ চেক করার যন্ত্র",
+    "symptomAnalyzer": "কাস্টম লক্ষণ বিশ্লেষক",
+    "myMedicines": "আমার ঔষধ",
     "trackHealth": "স্বাস্থ্য ট্র্যাক করুন"
   },
   "medicine": {
@@ -103,7 +104,9 @@
     "dizziness": "মাথা ঘোরা",
     "fatigue": "ক্লান্তি",
     "soreThroat": "গলা ব্যথা",
-    "chestPain": "বুক ব্যথা"
+    "chestPain": "বুকে ব্যথা",
+    "homeRemedies": "ঘরোয়া প্রতিকার",
+    "whenToSeeDoctor": "কখন ডাক্তার দেখাবেন"
   },
   "reminders": {
     "title": "ওষুধের অনুস্মারক",

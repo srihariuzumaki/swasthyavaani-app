@@ -37,6 +37,7 @@
     "healthTip3": "प्रतिदिन 30 मिनट व्यायाम करें",
     "healthTip4": "7-8 घंटे की नींद लें",
     "symptomChecker": "लक्षण जांचकर्ता",
+    "symptomAnalyzer": "कस्टम लक्षण विश्लेषक",
     "myMedicines": "मेरी दवाएं",
     "trackHealth": "स्वास्थ्य ट्रैक करें"
   },
@@ -103,7 +104,9 @@
     "dizziness": "चक्कर आना",
     "fatigue": "थकान",
     "soreThroat": "गले में खराश",
-    "chestPain": "छाती में दर्द"
+    "chestPain": "छाती में दर्द",
+    "homeRemedies": "घरेलू उपचार",
+    "whenToSeeDoctor": "डॉक्टर को कब दिखाएं"
   },
   "reminders": {
     "title": "दवा अनुस्मारक",

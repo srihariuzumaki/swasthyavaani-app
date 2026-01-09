@@ -37,6 +37,7 @@
     "healthTip3": "ಪ್ರತಿದಿನ 30 ನಿಮಿಷ ವ್ಯಾಯಾಮ ಮಾಡಿ",
     "healthTip4": "7-8 ಗಂಟೆ ನಿದ್ರೆ ಮಾಡಿ",
     "symptomChecker": "ಲಕ್ಷಣ ಪರಿಶೀಲಕ",
+    "symptomAnalyzer": "ಕಸ್ಟಮ್ ಲಕ್ಷಣ ವಿಶ್ಲೇಷಕ",
     "myMedicines": "ನನ್ನ ಮದ್ದುಗಳು",
     "trackHealth": "ಆರೋಗ್ಯವನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಿ"
   },
@@ -103,7 +104,9 @@
     "dizziness": "ತಲೆತಿರುಗುವಿಕೆ",
     "fatigue": "ಅಲಸತೆ",
     "soreThroat": "ಗಂಟಲು ನೋವು",
-    "chestPain": "ಎದೆ ನೋವು"
+    "chestPain": "ಎದೆ ನೋವು",
+    "homeRemedies": "ಮನೆಮದ್ದುಗಳು",
+    "whenToSeeDoctor": "ವೈದ್ಯರನ್ನು ಯಾವಾಗ ಭೇಟಿ ಮಾಡಬೇಕು"
   },
   "reminders": {
     "title": "ಮದ್ದು ನೆನಪುಗಳು",

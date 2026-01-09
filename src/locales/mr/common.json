@@ -37,6 +37,7 @@
     "healthTip3": "दररोज 30 मिनिटे व्यायाम करा",
     "healthTip4": "7-8 तास झोप घ्या",
     "symptomChecker": "लक्षण तपासणी",
+    "symptomAnalyzer": "कस्टम लक्षण विश्लेषक",
     "myMedicines": "माझी औषधे",
     "trackHealth": "आरोग्य ट्रॅक करा"
   },
@@ -103,7 +104,9 @@
     "dizziness": "चक्कर",
     "fatigue": "थकवा",
     "soreThroat": "घसा दुखी",
-    "chestPain": "छाती दुखी"
+    "chestPain": "छाती दुखी",
+    "homeRemedies": "घरगुती उपाय",
+    "whenToSeeDoctor": "डॉक्टरांना कधी भेटावे"
   },
   "reminders": {
     "title": "औषध आठवण्या",
